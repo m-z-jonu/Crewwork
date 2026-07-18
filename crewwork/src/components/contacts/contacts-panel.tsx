@@ -68,7 +68,7 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
           contact_id: request.user_id,
           status: 'accepted',
         })
-        .select('*, contact_profile:profiles(*)')
+        .select('*, contact_profile:profiles!contact_id(*)')
         .single()
 
       // 3. Remove from pending, add to accepted contacts

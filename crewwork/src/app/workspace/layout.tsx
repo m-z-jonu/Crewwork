@@ -221,7 +221,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
       // Load accepted contacts
       const { data, error } = await client
         .from('contacts')
-        .select('*, contact_profile:profiles(*)')
+        .select('*, contact_profile:profiles!contact_id(*)')
         .eq('user_id', userId)
         .eq('status', 'accepted')
 
@@ -232,7 +232,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
       // Load pending requests I RECEIVED (others wanting to add me)
       const { data: pendingData, error: pendingError } = await client
         .from('contacts')
-        .select('*, contact_profile:profiles(*)')
+        .select('*, contact_profile:profiles!contact_id(*)')
         .eq('contact_id', userId)
         .eq('status', 'pending')
 
@@ -263,7 +263,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
                 // Get the full contact row
                 const { data: fullContact } = await client
                   .from('contacts')
-                  .select('*, contact_profile:profiles(*)')
+                  .select('*, contact_profile:profiles!contact_id(*)')
                   .eq('user_id', newContact.user_id)
                   .eq('contact_id', userId)
                   .single()
