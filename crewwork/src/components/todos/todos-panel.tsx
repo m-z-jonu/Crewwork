@@ -12,28 +12,34 @@ export function TodosPanel({ open, onClose }: TodosPanelProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Panel */}
+      {/* Popup */}
       <div
-        className="relative w-[800px] max-w-[90vw] h-full shadow-2xl animate-in slide-in-from-right duration-200"
-        style={{ background: '#F8F6FF' }}
+        className="relative w-[900px] max-w-[90vw] max-h-[85vh] rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col"
+        style={{ background: '#ffffff' }}
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 h-8 w-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#FECACA]"
-          style={{ color: '#A8A29E' }}
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ borderBottom: '1px solid #E7E5E4' }}>
+          <h2 className="font-bold text-[17px]" style={{ color: '#1C1917' }}>Todos</h2>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[#FEF2F2]"
+            style={{ color: '#A8A29E' }}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-        <TodoBoard />
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          <TodoBoard />
+        </div>
       </div>
     </div>
   )
