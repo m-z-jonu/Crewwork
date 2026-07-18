@@ -11,6 +11,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'CrewWork',
   description: 'Open-source team communication platform',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({

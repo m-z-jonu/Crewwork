@@ -3,7 +3,8 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isConfigured, getSupabaseClient } from '@/lib/supabase/client'
-import { Loader2, MessageSquare } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
 
 export default function Home() {
   const router = useRouter()
@@ -38,7 +39,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-      <MessageSquare className="h-12 w-12 text-primary" />
+      <Logo className="h-12 w-12" />
       <h1 className="text-2xl font-bold">CrewWork</h1>
       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
     </div>

@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  MessageSquare,
   Server,
   Shield,
   Phone,
@@ -20,6 +19,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { provision, verifyTables, configureSiteUrl, validateToken } from '@/lib/supabase/provisioner'
+import { Logo } from '@/components/ui/logo'
 
 type Step = 'welcome' | 'connect' | 'provisioning' | 'done'
 
@@ -169,7 +169,7 @@ export default function SetupPage() {
       {step === 'welcome' && (
         <div className="max-w-lg w-full space-y-8 text-center">
           <div className="space-y-4">
-            <MessageSquare className="mx-auto h-16 w-16 text-primary" />
+            <Logo className="mx-auto h-16 w-16" />
             <h1 className="text-4xl font-bold tracking-tight">Welcome to CrewWork</h1>
             <p className="text-lg text-muted-foreground">
               The open-source team communication platform

@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MessageSquare, Loader2, Mail, Users, ArrowLeft, KeyRound } from 'lucide-react'
+import { Loader2, Mail, Users, ArrowLeft, KeyRound } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { generateIdentityKeyPair, getIdentityKeyPair } from '@/lib/crypto/keys'
 
@@ -732,7 +733,7 @@ function AuthForm() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="max-w-sm w-full">
         <CardHeader className="text-center">
-          <MessageSquare className="mx-auto h-10 w-10 text-primary mb-2" />
+          <Logo className="mx-auto h-10 w-10 mb-2" />
           <CardTitle className="text-2xl">CrewWork</CardTitle>
         </CardHeader>
         <CardContent>
