@@ -15,16 +15,18 @@ interface AddContactDialogProps {
 }
 
 export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) {
-  const { user, contacts, pendingContacts, addContact } = useAppStore()
+  const { user, contacts, pendingContacts, addPendingContact } = useAppStore()
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Profile[]>([])
   const [loading, setLoading] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) {
       setSearch('')
       setResults([])
+      setError(null)
     }
   }, [open])
 
@@ -87,6 +89,7 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
     if (!client || !user) return
 
     setAddingId(profile.id)
+    setError(null)
     try {
       // Only insert A→B with status 'pending'
       const { data, error } = await client
@@ -102,10 +105,11 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
       if (error) throw error
 
       if (data) {
-        addContact({ ...data, contact_profile: profile })
+        addPendingContact({ ...data, contact_profile: profile })
       }
     } catch (err) {
       console.error('Failed to send request:', err)
+      setError(err instanceof Error ? err.message : 'Failed to send request')
     } finally {
       setAddingId(null)
     }
@@ -117,6 +121,12 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
         <DialogHeader>
           <DialogTitle>Add Contact</DialogTitle>
         </DialogHeader>
+
+        {error && (
+          <div className="px-3 py-2 rounded-lg text-sm" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+            {error}
+          </div>
+        )}
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

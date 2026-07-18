@@ -21,6 +21,8 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
   const [groupName, setGroupName] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const filtered = contacts
     .map((c) => c.contact_profile)
@@ -43,20 +45,22 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
 
   async function createGroup() {
     const client = getSupabaseClient()
-    if (!client || !user || !personalWorkspace || selectedMembers.length < 2) return
+    if (!client || !user || !personalWorkspace || selectedMembers.length < 1) return
 
     setLoading(true)
+    setError(null)
     try {
       const id = crypto.randomUUID()
       const gdmName = `gdm-${id.slice(0, 12)}`
       const memberNames = selectedMembers.map((m) => m.display_name).join(', ')
+      const autoName = groupName.trim() || `${user.display_name}, ${memberNames}`
 
       const { error } = await client.from('channels').insert({
         id,
         workspace_id: personalWorkspace.id,
         name: gdmName,
-        description: groupName.trim() || `Group: ${user.display_name}, ${memberNames}`,
-        is_private: true,
+        description: autoName,
+        is_private: isPrivate,
         created_by: user.id,
       })
       if (error) throw error
@@ -88,6 +92,7 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
       setSearch('')
     } catch (err) {
       console.error('Failed to create group:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create group')
     } finally {
       setLoading(false)
     }
@@ -97,6 +102,8 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
     setSelectedMembers([])
     setGroupName('')
     setSearch('')
+    setIsPrivate(false)
+    setError(null)
     onOpenChange(false)
   }
 
@@ -116,6 +123,25 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
           />
+        </div>
+
+        {/* Visibility toggle */}
+        <div className="flex items-center justify-between">
+          <Label className="text-sm">Visibility</Label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm" style={{ color: isPrivate ? '#A8A29E' : '#1C1917' }}>Public</span>
+            <button
+              type="button"
+              onClick={() => setIsPrivate(!isPrivate)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+              style={{ background: isPrivate ? '#DC2626' : '#E7E5E4' }}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPrivate ? 'translate-x-6' : 'translate-x-1'}`}
+              />
+            </button>
+            <span className="text-sm" style={{ color: isPrivate ? '#1C1917' : '#A8A29E' }}>Private</span>
+          </div>
         </div>
 
         {/* Selected members chips */}
@@ -142,6 +168,12 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
+        {error && (
+          <div className="px-3 py-2 rounded-lg text-sm" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+            {error}
+          </div>
+        )}
 
         {/* Contacts list */}
         <div className="max-h-48 overflow-y-auto space-y-1">
@@ -201,17 +233,15 @@ export function CreateGroupDialog({ open, onOpenChange }: CreateGroupDialogProps
         </div>
 
         {/* Create button */}
-        {selectedMembers.length >= 2 && (
-          <Button
-            onClick={createGroup}
-            disabled={loading}
-            className="w-full"
-            style={{ background: '#DC2626', color: '#fff' }}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Create Group ({selectedMembers.length + 1} people)
-          </Button>
-        )}
+        <Button
+          onClick={createGroup}
+          disabled={loading || selectedMembers.length < 1}
+          className="w-full"
+          style={{ background: '#DC2626', color: '#fff' }}
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Create Group ({selectedMembers.length + 1} people)
+        </Button>
       </DialogContent>
     </Dialog>
   )

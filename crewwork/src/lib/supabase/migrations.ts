@@ -320,6 +320,9 @@ export const migrations: string[] = [
 
   // 060 - Per-channel calls_enabled
   `ALTER TABLE channels ADD COLUMN IF NOT EXISTS calls_enabled boolean DEFAULT true;`,
+
+  // 061 - Allow profile search for contact discovery
+  `DROP POLICY IF EXISTS profiles_select ON profiles; CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (auth.uid() IS NOT NULL);`,
 ]
 
 export const REQUIRED_TABLES = [
