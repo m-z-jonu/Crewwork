@@ -40,6 +40,14 @@
       "type": "local",
       "command": ["npx", "-y", "@modelcontextprotocol/server-puppeteer"],
       "enabled": true
+    },
+    "render": {
+      "type": "remote",
+      "url": "https://mcp.render.com/mcp",
+      "headers": {
+        "Authorization": "Bearer rnd_ZcGicOZuaJBaenkZlejOxx50xREw"
+      },
+      "enabled": true
     }
   }
 }
