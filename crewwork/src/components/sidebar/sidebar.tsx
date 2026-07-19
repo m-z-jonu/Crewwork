@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppStore } from '@/lib/store/app-store'
 import { getSupabaseClient } from '@/lib/supabase/client'
@@ -51,13 +51,26 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const router = useRouter()
-  const {
-    user, workspace, channels, dmChannels, currentChannelId,
-    setCurrentChannelId, setDmChannels, toggleActivity, unreadActivityCount,
-    hiddenDmIds, hideDm, unreadCounts, mutedChannelIds, muteChannel, unmuteChannel,
-
-    sidebarTab, setSidebarTab, contacts, pendingContacts, personalWorkspace,
-  } = useAppStore()
+  const user = useAppStore((s) => s.user)
+  const workspace = useAppStore((s) => s.workspace)
+  const channels = useAppStore((s) => s.channels)
+  const dmChannels = useAppStore((s) => s.dmChannels)
+  const currentChannelId = useAppStore((s) => s.currentChannelId)
+  const setCurrentChannelId = useAppStore((s) => s.setCurrentChannelId)
+  const setDmChannels = useAppStore((s) => s.setDmChannels)
+  const toggleActivity = useAppStore((s) => s.toggleActivity)
+  const unreadActivityCount = useAppStore((s) => s.unreadActivityCount)
+  const hiddenDmIds = useAppStore((s) => s.hiddenDmIds)
+  const hideDm = useAppStore((s) => s.hideDm)
+  const unreadCounts = useAppStore((s) => s.unreadCounts)
+  const mutedChannelIds = useAppStore((s) => s.mutedChannelIds)
+  const muteChannel = useAppStore((s) => s.muteChannel)
+  const unmuteChannel = useAppStore((s) => s.unmuteChannel)
+  const sidebarTab = useAppStore((s) => s.sidebarTab)
+  const setSidebarTab = useAppStore((s) => s.setSidebarTab)
+  const contacts = useAppStore((s) => s.contacts)
+  const pendingContacts = useAppStore((s) => s.pendingContacts)
+  const personalWorkspace = useAppStore((s) => s.personalWorkspace)
   const [channelsOpen, setChannelsOpen] = useState(true)
   const [dmsOpen, setDmsOpen] = useState(true)
   const [contactsOpen, setContactsOpen] = useState(true)
@@ -292,17 +305,17 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     router.push('/auth')
   }
 
-  const regularChannels = channels.filter((c) => !c.name.startsWith('dm-') && !c.name.startsWith('gdm-'))
-  const sortedChannels = [...regularChannels].sort((a, b) => {
+  const regularChannels = useMemo(() => channels.filter((c) => !c.name.startsWith('dm-') && !c.name.startsWith('gdm-')), [channels])
+  const sortedChannels = useMemo(() => [...regularChannels].sort((a, b) => {
     const aMuted = mutedChannelIds.includes(a.id)
     const bMuted = mutedChannelIds.includes(b.id)
     if (aMuted !== bMuted) return aMuted ? 1 : -1
     return a.name.localeCompare(b.name)
-  })
+  }), [regularChannels, mutedChannelIds])
 
   // Separate DMs and groups
-  const personalDms = dmChannels.filter((d) => d.name.startsWith('dm-') && !hiddenDmIds.includes(d.id))
-  const personalGroups = dmChannels.filter((d) => d.name.startsWith('gdm-') && !hiddenDmIds.includes(d.id))
+  const personalDms = useMemo(() => dmChannels.filter((d) => d.name.startsWith('dm-') && !hiddenDmIds.includes(d.id)), [dmChannels, hiddenDmIds])
+  const personalGroups = useMemo(() => dmChannels.filter((d) => d.name.startsWith('gdm-') && !hiddenDmIds.includes(d.id)), [dmChannels, hiddenDmIds])
 
   const activeWsName = sidebarTab === 'chats'
     ? (personalWorkspace?.personal_name || 'Personal')

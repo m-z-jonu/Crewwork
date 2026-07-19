@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { MessageSquare, MoreHorizontal, Pencil, Trash2, Bot } from 'lucide-react'
 import { SavePostButton } from '@/components/bookmarks/save-post-button'
@@ -56,7 +56,7 @@ interface MessageBubbleProps {
   channelName?: string
 }
 
-export function MessageBubble({ message, showHeader, isOwn, isThread, channelName = '' }: MessageBubbleProps) {
+export const MessageBubble = React.memo(function MessageBubble({ message, showHeader, isOwn, isThread, channelName = '' }: MessageBubbleProps) {
   const { user, openThread, openProfile } = useAppStore()
   const [hovered, setHovered] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
@@ -307,4 +307,4 @@ export function MessageBubble({ message, showHeader, isOwn, isThread, channelNam
       )}
     </div>
   )
-}
+})

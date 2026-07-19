@@ -5,11 +5,12 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
 import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
-import { ThreadPanel } from './thread-panel'
-import { UserProfilePanel } from './user-profile-panel'
 import { ChannelSettingsDialog } from './channel-settings-dialog'
 import { LockedMessage } from './locked-message'
-import { AIChat } from '@/components/ai/ai-chat'
+import dynamic from 'next/dynamic'
+const AIChat = dynamic(() => import('@/components/ai/ai-chat').then(m => m.AIChat), { ssr: false })
+const ThreadPanel = dynamic(() => import('./thread-panel').then(m => m.ThreadPanel), { ssr: false })
+const UserProfilePanel = dynamic(() => import('./user-profile-panel').then(m => m.UserProfilePanel), { ssr: false })
 import { db, type LocalMessage } from '@/lib/local/db'
 import { shouldSyncMessage, getSyncStartTime, storeMessage, getChannelMessages, markMessageSynced, decryptContent } from '@/lib/local/sync'
 import type { Channel, Message } from '@/types/database'
@@ -26,7 +27,17 @@ interface ChannelViewProps {
 }
 
 export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
-  const { user, workspace, threadParentMessage, profileUserId, dmChannels, openProfile, addChannel, setCurrentChannelId, setPreviewChannel, toggleSidebar, multiDeviceEnabled } = useAppStore()
+  const user = useAppStore((s) => s.user)
+  const workspace = useAppStore((s) => s.workspace)
+  const threadParentMessage = useAppStore((s) => s.threadParentMessage)
+  const profileUserId = useAppStore((s) => s.profileUserId)
+  const dmChannels = useAppStore((s) => s.dmChannels)
+  const openProfile = useAppStore((s) => s.openProfile)
+  const addChannel = useAppStore((s) => s.addChannel)
+  const setCurrentChannelId = useAppStore((s) => s.setCurrentChannelId)
+  const setPreviewChannel = useAppStore((s) => s.setPreviewChannel)
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar)
+  const multiDeviceEnabled = useAppStore((s) => s.multiDeviceEnabled)
   const { isDesktop } = useMobile()
   const isDm = channel.name.startsWith('dm-')
   const isGroupDm = channel.name.startsWith('gdm-')

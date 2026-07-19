@@ -6,8 +6,9 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
 import { Sidebar } from '@/components/sidebar/sidebar'
 import { ActivityPanel } from '@/components/activity/activity-panel'
-import { CallPanel } from '@/components/calls/call-panel'
-import { IncomingCallBanner } from '@/components/calls/incoming-call-banner'
+import dynamic from 'next/dynamic'
+const CallPanel = dynamic(() => import('@/components/calls/call-panel').then(m => m.CallPanel), { ssr: false })
+const IncomingCallBanner = dynamic(() => import('@/components/calls/incoming-call-banner').then(m => m.IncomingCallBanner), { ssr: false })
 import { WorkspaceSetup } from '@/components/workspace/workspace-setup'
 import type { Profile, Workspace, WorkspaceMember, Channel, Contact } from '@/types/database'
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react'
