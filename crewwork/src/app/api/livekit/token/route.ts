@@ -54,36 +54,37 @@ export async function POST(request: NextRequest) {
 
     const { data: ws, error: wsError } = await supabaseAdmin
       .from('workspaces')
-      .select('calls_enabled')
+      .select('*')
       .eq('id', workspaceId)
       .single()
 
     if (wsError || !ws) {
       return NextResponse.json(
-        { error: 'Workspace not found.' },
+        { error: `Workspace not found: ${wsError?.message || 'no row'}` },
         { status: 400 }
       )
     }
 
-    if (!ws.calls_enabled) {
+    if (ws.calls_enabled === false) {
       return NextResponse.json({ error: 'Calls are disabled for this workspace' }, { status: 400 })
     }
 
     // Check channel-level calls_enabled
     const { data: ch, error: chError } = await supabaseAdmin
       .from('channels')
-      .select('calls_enabled')
+      .select('*')
       .eq('id', channelId)
       .single()
 
     if (chError || !ch) {
       return NextResponse.json(
-        { error: 'Channel not found.' },
+        { error: `Channel not found: ${chError?.message || 'no row'}` },
         { status: 400 }
       )
     }
 
-    if (!ch.calls_enabled) {
+    // calls_enabled defaults to true if column doesn't exist yet
+    if (ch.calls_enabled === false) {
       return NextResponse.json({ error: 'Calls are disabled for this channel' }, { status: 400 })
     }
 

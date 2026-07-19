@@ -388,7 +388,7 @@ export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
   }
 
   async function handleStartCall() {
-    if (!workspace?.calls_enabled && channel.calls_enabled !== true) {
+    if (channel.calls_enabled === false) {
       setCallSetupOpen(true)
       return
     }
@@ -405,7 +405,7 @@ export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({ roomName, workspaceId: workspace.id, channelId: channel.id }),
+        body: JSON.stringify({ roomName, workspaceId: channel.workspace_id, channelId: channel.id }),
       })
       if (!res.ok) {
         const err = await res.json()
