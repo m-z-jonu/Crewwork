@@ -28,10 +28,21 @@ export function StructuredData() {
     ],
   }
 
+  const softwareJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareSourceCode',
+    name: 'CrewWork',
+    codeRepository: 'https://github.com/m-z-jonu/Crewwork',
+    programmingLanguage: 'TypeScript',
+    runtimePlatform: 'Node.js',
+    license: 'https://opensource.org/licenses/MIT',
+    description: 'Open-source team communication platform',
+  }
+
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }} />
+    </>
   )
 }
