@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { StructuredData } from '@/components/seo/structured-data'
 import './globals.css'
 
 const inter = Inter({
@@ -36,6 +37,9 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   icons: { icon: '/favicon.svg' },
+  alternates: {
+    canonical: 'https://crewwork-cp8n.onrender.com',
+  },
 }
 
 export default function RootLayout({
@@ -45,7 +49,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} antialiased`} style={{ fontFamily: 'var(--font-sans), system-ui, sans-serif' }}>{children}</body>
+      <body className={`${inter.variable} antialiased`} style={{ fontFamily: 'var(--font-sans), system-ui, sans-serif' }}>
+        <StructuredData />
+        {children}
+      </body>
     </html>
   )
 }
