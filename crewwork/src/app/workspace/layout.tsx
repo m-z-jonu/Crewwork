@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
@@ -66,6 +66,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   const [loading, setLoading] = useState(true)
   const [showWorkspaceSetup, setShowWorkspaceSetup] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const contactsCleanupRef = useRef<(() => void) | null>(null)
 
   useNotifications()
   usePresence()
@@ -73,6 +74,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     loadUserData()
     fetch('/api/storage', { method: 'POST' }).catch(() => {})
+    return () => {
+      contactsCleanupRef.current?.()
+    }
   }, [])
 
   async function loadUserData() {
@@ -190,7 +194,23 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
           workspace_type: 'personal',
         })
 
-      if (wsError) throw wsError
+      if (wsError) {
+        // 23505 = unique constraint violation (StrictMode double-render race)
+        if (wsError.code === '23505') {
+          const { data: existingWs } = await client
+            .from('workspaces')
+            .select('*')
+            .eq('slug', slug)
+            .eq('workspace_type', 'personal')
+            .single()
+
+          if (existingWs) {
+            setPersonalWorkspace(existingWs as Workspace)
+            return
+          }
+        }
+        throw wsError
+      }
 
       // Add self as owner
       await client.from('workspace_members').insert({
@@ -303,8 +323,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
         )
         .subscribe()
 
-      // Store subscription for cleanup
-      return () => {
+      // Store subscription for cleanup on unmount
+      contactsCleanupRef.current = () => {
         contactsSub.unsubscribe()
       }
     } catch {

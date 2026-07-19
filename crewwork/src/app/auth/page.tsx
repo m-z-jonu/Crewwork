@@ -198,7 +198,10 @@ function AuthForm() {
   async function handleCompleteProfile(e: React.FormEvent) {
     e.preventDefault()
     const client = getSupabaseClient()
-    if (!client) return
+    if (!client) {
+      setError('Supabase is not configured. Please visit /setup to connect your project.')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
@@ -334,7 +337,10 @@ function AuthForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const client = getSupabaseClient()
-    if (!client) return
+    if (!client) {
+      setError('Supabase is not configured. Please visit /setup to connect your project.')
+      return
+    }
 
     isManualSubmit.current = true
     setLoading(true)
