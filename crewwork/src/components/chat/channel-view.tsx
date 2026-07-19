@@ -388,7 +388,7 @@ export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
   }
 
   async function handleStartCall() {
-    if (!workspace?.calls_enabled || channel.calls_enabled === false) {
+    if (!workspace?.calls_enabled && channel.calls_enabled !== true) {
       setCallSetupOpen(true)
       return
     }
@@ -505,7 +505,7 @@ export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
             )}
           </div>
           <div className="flex items-center gap-1">
-            {!isDirectMessage && channel.calls_enabled !== false && (
+            {(workspace?.calls_enabled || channel.calls_enabled === true) && (
               <button
                 onClick={handleStartCall}
                 className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#FEF2F2] transition-colors"
