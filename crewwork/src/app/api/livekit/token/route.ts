@@ -43,7 +43,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
-    const { data: ws, error: wsError } = await supabase
+    // Use service role key to bypass RLS for channel/workspace lookups
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 })
+    }
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
+    const { data: ws, error: wsError } = await supabaseAdmin
       .from('workspaces')
       .select('calls_enabled')
       .eq('id', workspaceId)
@@ -61,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check channel-level calls_enabled
-    const { data: ch, error: chError } = await supabase
+    const { data: ch, error: chError } = await supabaseAdmin
       .from('channels')
       .select('calls_enabled')
       .eq('id', channelId)
