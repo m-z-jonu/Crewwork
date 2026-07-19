@@ -392,6 +392,7 @@ export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
       setCallSetupOpen(true)
       return
     }
+    if (!workspace) return
     const client = getSupabaseClient()
     if (!client || !user) return
 
