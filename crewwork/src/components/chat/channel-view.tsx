@@ -392,35 +392,12 @@ export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
       setCallSetupOpen(true)
       return
     }
-    if (!workspace) return
-    const client = getSupabaseClient()
-    if (!client || !user) return
-
-    const roomName = `${workspace.id}-${channel.id}-${Date.now()}`
-    try {
-      const { data: { session } } = await client.auth.getSession()
-      const res = await fetch('/api/livekit/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ roomName, workspaceId: channel.workspace_id, channelId: channel.id }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        console.error('Failed to get call token:', err.error)
-        return
-      }
-      const { server_url, participant_token } = await res.json()
-      useAppStore.getState().setActiveCall({
-        roomName,
-        serverUrl: server_url,
-        token: participant_token,
-      })
-    } catch (err) {
-      console.error('Failed to start call:', err)
-    }
+    const roomName = `${workspace?.id || 'default'}-${channel.id}-${Date.now()}`
+    useAppStore.getState().setActiveCall({
+      roomName,
+      serverUrl: '',
+      token: '',
+    })
   }
 
   return (
