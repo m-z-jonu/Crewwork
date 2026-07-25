@@ -67,6 +67,8 @@ export function CallPanel() {
             'togglecamera', 'videoquality'
           ],
           disableDeepLinking: true,
+          disableModeratorIndicator: false,
+          startWithModerator: true,
           defaultLanguage: 'en',
         },
         interfaceConfigOverwrite: {
@@ -93,6 +95,12 @@ export function CallPanel() {
       apiRef.current = api
 
       // Event listeners
+      api.addEventListener('ready', () => {
+        setLoading(false)
+        // Ensure we're a moderator
+        api.executeCommand('toggleParticipantMenu', { hidden: false })
+      })
+
       api.addEventListener('readyToClose', () => {
         handleLeave()
       })
