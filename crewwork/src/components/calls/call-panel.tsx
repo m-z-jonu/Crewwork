@@ -1,31 +1,138 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { X, Phone, LogOut, Loader2 } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { X, Phone, LogOut, Loader2, Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff, Hand, MessageSquare, Users, Settings, Maximize, Minimize } from 'lucide-react'
 import { useAppStore } from '@/lib/store/app-store'
 
 const JITSI_DOMAIN = 'meet.jit.si'
 
+// Load Jitsi External API script
+function loadJitsiScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.getElementById('jitsi-api-script')) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.id = 'jitsi-api-script'
+    script.src = `https://${JITSI_DOMAIN}/external_api.js`
+    script.async = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Failed to load Jitsi API'))
+    document.head.appendChild(script)
+  })
+}
+
 export function CallPanel() {
   const activeCall = useAppStore((s) => s.activeCall)
   const user = useAppStore((s) => s.user)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const apiRef = useRef<any>(null)
   const [inLobby, setInLobby] = useState(true)
-  const [iframeLoading, setIframeLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [muted, setMuted] = useState(false)
+  const [videoOff, setVideoOff] = useState(false)
+  const [participantCount, setParticipantCount] = useState(1)
+  const [showChat, setShowChat] = useState(false)
 
   const handleLeave = useCallback(() => {
+    if (apiRef.current) {
+      apiRef.current.dispose()
+      apiRef.current = null
+    }
     useAppStore.getState().setActiveCall(null)
   }, [])
 
-  const handleJoin = useCallback(() => {
+  const handleJoin = useCallback(async () => {
     setInLobby(false)
-    setIframeLoading(true)
+    setLoading(true)
+
+    try {
+      await loadJitsiScript()
+
+      const roomName = `CrewWork-${activeCall?.roomName.split('-').slice(0, 2).join('-') || 'room'}`
+
+      const api = new (window as any).JitsiMeetExternalAPI(JITSI_DOMAIN, {
+        roomName,
+        parentNode: containerRef.current,
+        width: '100%',
+        height: '100%',
+        configOverwrite: {
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          prejoinPageEnabled: false,
+          toolbarButtons: [
+            'microphone', 'camera', 'closedcaptions', 'desktop',
+            'hangup', 'chat', 'settings', 'tileview',
+            'togglecamera', 'videoquality'
+          ],
+          disableDeepLinking: true,
+          defaultLanguage: 'en',
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_BRAND_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          SHOW_POWERED_BY: false,
+          TOOLBAR_ALWAYS_VISIBLE: true,
+          DEFAULT_BACKGROUND: '#ffffff',
+          TOOLBAR_COLOR: '#DC2626',
+          TOOLBAR_BG_COLOR: '#ffffff',
+          TOOLBAR_TEXT_COLOR: '#1C1917',
+          MAIN_TOOLBAR_COLORS: ['#DC2626', '#ffffff', '#1C1917'],
+          SETTINGS_TOOLBAR_COLORS: ['#DC2626', '#ffffff', '#1C1917'],
+          FILM_STRIP_MAX_HEIGHT: 120,
+          filmStripOnly: false,
+          DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+        },
+        userInfo: {
+          displayName: user?.display_name || 'User',
+        },
+      })
+
+      apiRef.current = api
+
+      // Event listeners
+      api.addEventListener('readyToClose', () => {
+        handleLeave()
+      })
+
+      api.addEventListener('participantJoined', () => {
+        setParticipantCount((prev) => prev + 1)
+      })
+
+      api.addEventListener('participantLeft', () => {
+        setParticipantCount((prev) => Math.max(1, prev - 1))
+      })
+
+      api.addEventListener('audioMuteChanged', (e: any) => {
+        setMuted(e.muted)
+      })
+
+      api.addEventListener('videoMuteChanged', (e: any) => {
+        setVideoOff(e.muted)
+      })
+
+      setLoading(false)
+    } catch (err) {
+      console.error('Failed to initialize Jitsi:', err)
+      setLoading(false)
+    }
+  }, [activeCall, user, handleLeave])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (apiRef.current) {
+        apiRef.current.dispose()
+        apiRef.current = null
+      }
+    }
   }, [])
 
   if (!activeCall) return null
 
   const roomName = `CrewWork-${activeCall.roomName.split('-').slice(0, 2).join('-')}`
-
-  const jitsiUrl = `https://${JITSI_DOMAIN}/${roomName}#config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.prejoinPageEnabled=false&config.toolbarButtons=["microphone","camera","closedcaptions","desktop","hangup","chat","settings","tileview","togglecamera","videoquality"]&userInfo.displayName=${encodeURIComponent(user?.display_name || 'User')}`
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -45,18 +152,26 @@ export function CallPanel() {
               )}
             </div>
           </div>
-          <button
-            onClick={handleLeave}
-            className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#FEF2F2] transition-colors"
-            title="End call"
-          >
-            <X className="h-4 w-4" style={{ color: '#A8A29E' }} />
-          </button>
+          <div className="flex items-center gap-2">
+            {!inLobby && (
+              <span className="text-xs px-2 py-1 rounded-full" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                {participantCount} participant{participantCount !== 1 ? 's' : ''}
+              </span>
+            )}
+            <button
+              onClick={handleLeave}
+              className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[#FEF2F2] transition-colors"
+              title="End call"
+            >
+              <X className="h-4 w-4" style={{ color: '#A8A29E' }} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 min-h-0 relative">
           {inLobby ? (
+            /* Lobby Screen */
             <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
               <div className="w-32 h-32 rounded-full flex items-center justify-center" style={{ background: '#FEE2E2' }}>
                 <span className="text-4xl font-bold" style={{ color: '#DC2626' }}>
@@ -88,26 +203,60 @@ export function CallPanel() {
               </div>
             </div>
           ) : (
+            /* Jitsi External API container */
             <div className="relative w-full h-full">
-              {iframeLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-50">
+              {loading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-50 z-10">
                   <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#DC2626' }} />
                   <p className="text-sm" style={{ color: '#A8A29E' }}>Connecting to call...</p>
                 </div>
               )}
-              <iframe
-                src={jitsiUrl}
-                className="w-full h-full border-0"
-                allow="camera; microphone; fullscreen; display-capture; screen-wake-lock; autoplay"
-                title="Video Call"
-                onLoad={() => setIframeLoading(false)}
-              />
+              <div ref={containerRef} className="w-full h-full" />
             </div>
           )}
         </div>
 
+        {/* Footer */}
         {!inLobby && (
-          <div className="flex items-center justify-center px-5 py-3 border-t border-[#E7E5E4] shrink-0">
+          <div className="flex items-center justify-between px-5 py-3 border-t border-[#E7E5E4] shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (apiRef.current) {
+                    apiRef.current.executeCommand('toggleAudio')
+                  }
+                }}
+                className="h-9 w-9 rounded-xl flex items-center justify-center transition-colors"
+                style={{ background: muted ? '#FEE2E2' : '#F3F4F6', color: muted ? '#DC2626' : '#78716C' }}
+                title={muted ? 'Unmute' : 'Mute'}
+              >
+                {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() => {
+                  if (apiRef.current) {
+                    apiRef.current.executeCommand('toggleVideo')
+                  }
+                }}
+                className="h-9 w-9 rounded-xl flex items-center justify-center transition-colors"
+                style={{ background: videoOff ? '#FEE2E2' : '#F3F4F6', color: videoOff ? '#DC2626' : '#78716C' }}
+                title={videoOff ? 'Turn on camera' : 'Turn off camera'}
+              >
+                {videoOff ? <VideoOff className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() => {
+                  if (apiRef.current) {
+                    apiRef.current.executeCommand('toggleShareScreen')
+                  }
+                }}
+                className="h-9 w-9 rounded-xl flex items-center justify-center transition-colors hover:bg-gray-100"
+                style={{ color: '#78716C' }}
+                title="Share screen"
+              >
+                <ScreenShare className="h-4 w-4" />
+              </button>
+            </div>
             <button
               onClick={handleLeave}
               className="h-10 px-6 rounded-xl flex items-center gap-2 text-sm font-semibold text-white transition-colors hover:opacity-90"
