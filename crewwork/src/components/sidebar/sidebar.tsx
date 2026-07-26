@@ -365,14 +365,6 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           >
             <MessageCircle className="h-3.5 w-3.5" />
             Chats
-            {pendingContacts.length > 0 && (
-              <span
-                className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
-                style={{ background: '#F59E0B' }}
-              >
-                {pendingContacts.length}
-              </span>
-            )}
           </button>
           <button
             onClick={() => setSidebarTab('workspaces')}
