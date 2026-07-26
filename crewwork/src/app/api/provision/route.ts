@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { log, logError } from '@/lib/logger'
 
 function validatePAT(token: string): string | null {
   const trimmed = token.trim()
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     return handleSQL(projectRef, trimmedToken, body)
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     )
   }
@@ -87,17 +88,11 @@ async function handleSQL(
   })
 
   if (!response.ok) {
-    const responseBody = await response.text()
-    try {
-      const json = JSON.parse(responseBody)
-      const message = json.message || json.error || responseBody
-      return NextResponse.json({ error: message }, { status: response.status })
-    } catch {
-      return NextResponse.json(
-        { error: `Supabase API error (HTTP ${response.status}): ${responseBody}` },
-        { status: response.status }
-      )
-    }
+    await response.text()
+    return NextResponse.json(
+      { error: 'Supabase API request failed' },
+      { status: response.status }
+    )
   }
 
   // Some SQL commands (DDL) may return empty or non-JSON responses
@@ -132,7 +127,7 @@ async function handleAuthConfig(
     return NextResponse.json({ error: 'Invalid siteUrl format' }, { status: 400 })
   }
 
-  console.log(`[auth-config] Updating Site URL to: ${siteUrl}`)
+  log(`[auth-config] Updating Site URL to: ${siteUrl}`)
 
   // First, GET current auth config to preserve existing redirect URLs
   const getUrl = `https://api.supabase.com/v1/projects/${projectRef}/config/auth`
@@ -154,10 +149,10 @@ async function handleAuthConfig(
         .map((u: string) => u.trim())
         .filter(Boolean)
     }
-    console.log(`[auth-config] Current Site URL: ${currentConfig.SITE_URL}`)
-    console.log(`[auth-config] Current Redirect URLs: ${currentConfig.URI_ALLOW_LIST || '(none)'}`)
+    log(`[auth-config] Current Site URL: ${currentConfig.SITE_URL}`)
+    log(`[auth-config] Current Redirect URLs: ${currentConfig.URI_ALLOW_LIST || '(none)'}`)
   } else {
-    console.warn(`[auth-config] Failed to GET current config: HTTP ${getResponse.status}`)
+    log(`[auth-config] Failed to GET current config: HTTP ${getResponse.status}`)
   }
 
   // Merge new redirect URLs with existing ones (deduplicate)
@@ -173,7 +168,7 @@ async function handleAuthConfig(
     updateBody.URI_ALLOW_LIST = allRedirectUrls.join(',')
   }
 
-  console.log(`[auth-config] PATCH body:`, JSON.stringify(updateBody))
+  log(`[auth-config] PATCH body:`, JSON.stringify(updateBody))
 
   const response = await fetch(updateUrl, {
     method: 'PATCH',
@@ -185,21 +180,13 @@ async function handleAuthConfig(
   })
 
   if (!response.ok) {
-    const responseBody = await response.text()
-    console.error(`[auth-config] PATCH failed: HTTP ${response.status}`, responseBody)
-    try {
-      const json = JSON.parse(responseBody)
-      const message = json.message || json.error || responseBody
-      return NextResponse.json({ error: message }, { status: response.status })
-    } catch {
-      return NextResponse.json(
-        { error: `Supabase API error (HTTP ${response.status}): ${responseBody}` },
-        { status: response.status }
-      )
-    }
+    return NextResponse.json(
+      { error: 'Failed to update auth config' },
+      { status: response.status }
+    )
   }
 
   const data = await response.json()
-  console.log(`[auth-config] ✅ Site URL updated to: ${siteUrl}`)
+  log(`[auth-config] Site URL updated to: ${siteUrl}`)
   return NextResponse.json({ success: true, siteUrl, redirectUrls: allRedirectUrls, data })
 }

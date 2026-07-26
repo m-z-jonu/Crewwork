@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // Simple invite token: base64 of workspaceId:email:expiry
 // In production, use a signed JWT or database-stored token
@@ -31,6 +32,12 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields (email, password, workspaceId, inviteToken)' },
         { status: 400 }
       )
+    }
+
+    // Rate limit: 5 per email per hour
+    const rateLimitKey = `invite-complete:${email.toLowerCase()}`
+    if (!checkRateLimit(rateLimitKey, 5, 3600000)) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
     }
 
     // Validate invite token
@@ -140,7 +147,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('[invite-complete] Error:', error)
     return NextResponse.json(
       { error: 'Failed to complete invite' },
       { status: 500 }

@@ -45,6 +45,7 @@ function renderMessageContent(text: string, mentionNames?: Record<string, string
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['strong', 'em', 'code', 'pre', 'a', 'span'],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+    ALLOWED_URI_REGEXP: /^(?:(?:https|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-]|$))/i,
   })
 }
 

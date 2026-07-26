@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { AccessToken } from 'livekit-server-sdk'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +44,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
+    // Rate limit: 10 per minute per user
+    const rateLimitKey = `livekit-token:${user.id}`
+    if (!checkRateLimit(rateLimitKey, 10, 60000)) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+    }
+
     // Use service role key to bypass RLS for channel/workspace lookups
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!serviceRoleKey) {
@@ -60,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     if (wsError || !ws) {
       return NextResponse.json(
-        { error: `Workspace not found: ${wsError?.message || 'no row'}` },
+        { error: 'Workspace not found' },
         { status: 400 }
       )
     }
@@ -78,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     if (chError || !ch) {
       return NextResponse.json(
-        { error: `Channel not found: ${chError?.message || 'no row'}` },
+        { error: 'Channel not found' },
         { status: 400 }
       )
     }
@@ -126,9 +133,8 @@ export async function POST(request: NextRequest) {
       participant_token: participantToken,
     })
   } catch (error) {
-    console.error('LiveKit token error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to generate token' },
+      { error: 'Failed to generate token' },
       { status: 500 }
     )
   }
