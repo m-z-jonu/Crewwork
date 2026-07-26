@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 function validatePAT(token: string): string | null {
   const trimmed = token.trim()
@@ -9,10 +10,6 @@ function validatePAT(token: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  // NOTE: This endpoint requires a valid Supabase Personal Access Token (sbp_...)
-  // which already grants full admin access to the project — so no additional
-  // production guard is needed. The PAT itself is the security boundary.
-
   try {
     const body = await req.json()
     const { projectRef, accessToken } = body
@@ -29,6 +26,27 @@ export async function POST(req: NextRequest) {
     const tokenError = validatePAT(trimmedToken)
     if (tokenError) {
       return NextResponse.json({ error: tokenError }, { status: 400 })
+    }
+
+    // Verify caller is authenticated
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
     // Route to the right handler based on action type

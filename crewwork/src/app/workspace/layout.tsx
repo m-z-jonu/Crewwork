@@ -73,7 +73,15 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     loadUserData()
-    fetch('/api/storage', { method: 'POST' }).catch(() => {})
+    const client = getSupabaseClient()
+    client?.auth.getSession().then(({ data: { session } }) => {
+      fetch('/api/storage', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      }).catch(() => {})
+    })
     return () => {
       contactsCleanupRef.current?.()
     }

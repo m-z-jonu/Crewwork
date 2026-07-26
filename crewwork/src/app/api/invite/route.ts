@@ -109,7 +109,9 @@ export async function POST(request: NextRequest) {
     }
 
     // User doesn't exist — send invite email via Supabase Auth
-    const redirectTo = `${request.nextUrl.origin}/auth?workspace=${workspaceId}&email=${encodeURIComponent(email)}`
+    // Generate invite token (valid for 7 days)
+    const inviteToken = btoa(`${workspaceId}:${email}:${Date.now() + 7 * 24 * 60 * 60 * 1000}`)
+    const redirectTo = `${request.nextUrl.origin}/auth?workspace=${workspaceId}&email=${encodeURIComponent(email)}&token=${inviteToken}`
 
     const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo,

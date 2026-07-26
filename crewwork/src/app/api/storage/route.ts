@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 // POST: Create storage buckets (avatars, attachments)
-export async function POST() {
+export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -11,6 +11,25 @@ export async function POST() {
       { error: 'Missing Supabase URL or service role key. Please configure these in your .env.local file.' },
       { status: 400 }
     )
+  }
+
+  // Verify caller is authenticated
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseAnonKey) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+  }
+
+  const supabaseAuth = createClient(url, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  })
+  const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
   }
 
   const supabase = createClient(url, serviceKey, {

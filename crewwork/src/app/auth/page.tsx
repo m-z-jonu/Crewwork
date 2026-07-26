@@ -27,6 +27,7 @@ function AuthForm() {
   const workspaceId = searchParams.get('workspace')
 
   const emailParam = searchParams.get('email')
+  const inviteTokenParam = searchParams.get('token') || ''
   const isInviteFlow = !!(workspaceId && emailParam)
 
   const [mode, setMode] = useState<Mode>(workspaceId ? 'signup' : 'signin')
@@ -312,6 +313,7 @@ function AuthForm() {
           password,
           displayName: displayName || email.split('@')[0],
           workspaceId,
+          inviteToken: inviteTokenParam,
         }),
       })
 

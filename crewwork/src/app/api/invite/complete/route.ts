@@ -1,45 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-/**
- * POST /api/invite/complete
- * Fallback for completing the invite flow when hash fragment session doesn't work.
- * Uses admin API to create/update the user and add them to the workspace.
- * Called by unauthenticated invited users — validates workspace exists instead of caller auth.
- */
+// Simple invite token: base64 of workspaceId:email:expiry
+// In production, use a signed JWT or database-stored token
+function validateInviteToken(token: string): { workspaceId: string; email: string } | null {
+  try {
+    const decoded = atob(token)
+    const [workspaceId, email, expiry] = decoded.split(':')
+    if (!workspaceId || !email || !expiry) return null
+    if (Date.now() > parseInt(expiry)) return null // Token expired
+    return { workspaceId, email }
+  } catch {
+    return null
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json(
-        { error: 'Supabase not configured' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
     }
 
-    const { email, password, displayName, workspaceId } = await request.json()
+    const { email, password, workspaceId, inviteToken } = await request.json()
 
-    if (!email || !password || !workspaceId) {
+    if (!email || !password || !workspaceId || !inviteToken) {
       return NextResponse.json(
-        { error: 'Missing email, password, or workspaceId' },
+        { error: 'Missing required fields (email, password, workspaceId, inviteToken)' },
         { status: 400 }
       )
     }
 
-    if (password.length < 6) {
+    // Validate invite token
+    const tokenData = validateInviteToken(inviteToken)
+    if (!tokenData || tokenData.workspaceId !== workspaceId || tokenData.email.toLowerCase() !== email.toLowerCase()) {
+      return NextResponse.json({ error: 'Invalid or expired invite token' }, { status: 403 })
+    }
+
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
+        { error: 'Password must be at least 8 characters' },
         { status: 400 }
       )
     }
 
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
     if (!serviceRoleKey) {
       return NextResponse.json(
-        { error: 'Service role key not configured. Ask your workspace admin to set SUPABASE_SERVICE_ROLE_KEY.' },
+        { error: 'Service role key not configured' },
         { status: 500 }
       )
     }
@@ -48,7 +58,7 @@ export async function POST(request: NextRequest) {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Validate the workspace exists
+    // Validate workspace exists
     const { data: workspace, error: wsError } = await supabaseAdmin
       .from('workspaces')
       .select('id')
@@ -61,13 +71,13 @@ export async function POST(request: NextRequest) {
 
     let userId: string | null = null
 
-    // Strategy 1: Try to create the user directly (works if invite user doesn't exist yet)
+    // Try to create the user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: {
-        display_name: displayName || email.split('@')[0],
+        display_name: email.split('@')[0],
         workspace_id: workspaceId,
       },
     })
@@ -75,70 +85,26 @@ export async function POST(request: NextRequest) {
     if (newUser?.user) {
       userId = newUser.user.id
     } else if (createError) {
-      // User already exists (from inviteUserByEmail) — find and update them
-      console.log('[invite-complete] User exists, looking up to update:', createError.message)
-
-      // Find user by listing (with error handling)
-      const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+      // User already exists — find them
+      const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({
         page: 1,
         perPage: 1000,
       })
-
-      if (listError) {
-        console.error('[invite-complete] listUsers failed:', listError)
-        return NextResponse.json(
-          { error: `Admin API error: ${listError.message}. Check SUPABASE_SERVICE_ROLE_KEY.` },
-          { status: 500 }
-        )
-      }
-
       const existingUser = usersData?.users.find(
         (u) => u.email?.toLowerCase() === email.toLowerCase()
       )
-
       if (!existingUser) {
         return NextResponse.json(
-          { error: 'Could not find user account. Please try again or contact workspace admin.' },
+          { error: 'Could not find user account' },
           { status: 404 }
         )
       }
-
-      // Update password and metadata
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-        existingUser.id,
-        {
-          password,
-          email_confirm: true,
-          user_metadata: {
-            ...existingUser.user_metadata,
-            display_name: displayName || email.split('@')[0],
-          },
-        }
-      )
-
-      if (updateError) {
-        console.error('[invite-complete] updateUser failed:', updateError)
-        return NextResponse.json(
-          { error: updateError.message },
-          { status: 500 }
-        )
-      }
-
       userId = existingUser.id
     }
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Failed to create or find user' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Failed to create or find user' }, { status: 500 })
     }
-
-    // Update profile table
-    await supabaseAdmin
-      .from('profiles')
-      .update({ display_name: displayName || email.split('@')[0] })
-      .eq('id', userId)
 
     // Add to workspace if not already a member
     const { data: existing } = await supabaseAdmin
@@ -174,9 +140,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('[invite-complete] Unexpected error:', error)
+    console.error('[invite-complete] Error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to complete invite' },
+      { error: 'Failed to complete invite' },
       { status: 500 }
     )
   }
