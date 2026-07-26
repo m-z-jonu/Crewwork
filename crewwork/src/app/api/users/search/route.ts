@@ -33,9 +33,11 @@ export async function GET(request: NextRequest) {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // Don't select discoverable column — it may not exist yet in the database
+    // Filter non-discoverable users in the app layer after the column is added
     const { data: users, error: searchError } = await supabaseAdmin
       .from('profiles')
-      .select('id, display_name, email, avatar_url, is_online, discoverable')
+      .select('id, display_name, email, avatar_url, is_online')
       .neq('id', user.id)
       .or(`display_name.ilike.%${query}%,email.ilike.%${query}%`)
       .limit(20)
@@ -44,11 +46,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: searchError.message }, { status: 500 })
     }
 
-    const discoverableUsers = (users || []).filter(
-      (u) => u.discoverable !== false
-    )
-
-    return NextResponse.json({ users: discoverableUsers })
+    return NextResponse.json({ users: users || [] })
   } catch (error) {
     console.error('User search error:', error)
     return NextResponse.json(
