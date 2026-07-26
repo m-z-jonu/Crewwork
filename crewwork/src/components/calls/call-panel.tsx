@@ -61,15 +61,16 @@ export function CallPanel() {
           startWithAudioMuted: false,
           startWithVideoMuted: false,
           prejoinPageEnabled: false,
+          enableLobby: false,
+          startWithModertor: true,
+          enableInsecureRoomNameWarning: false,
+          disableDeepLinking: true,
+          defaultLanguage: 'en',
           toolbarButtons: [
             'microphone', 'camera', 'closedcaptions', 'desktop',
             'hangup', 'chat', 'settings', 'tileview',
             'togglecamera', 'videoquality'
           ],
-          disableDeepLinking: true,
-          disableModeratorIndicator: false,
-          startWithModerator: true,
-          defaultLanguage: 'en',
         },
         interfaceConfigOverwrite: {
           SHOW_JITSI_WATERMARK: false,
@@ -81,11 +82,8 @@ export function CallPanel() {
           TOOLBAR_COLOR: '#DC2626',
           TOOLBAR_BG_COLOR: '#ffffff',
           TOOLBAR_TEXT_COLOR: '#1C1917',
-          MAIN_TOOLBAR_COLORS: ['#DC2626', '#ffffff', '#1C1917'],
-          SETTINGS_TOOLBAR_COLORS: ['#DC2626', '#ffffff', '#1C1917'],
-          FILM_STRIP_MAX_HEIGHT: 120,
-          filmStripOnly: false,
           DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+          SHOW_CHROME_EXTENSION_BANNER: false,
         },
         userInfo: {
           displayName: user?.display_name || 'User',
