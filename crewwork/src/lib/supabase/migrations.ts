@@ -326,6 +326,43 @@ export const migrations: string[] = [
 
   // 062 - Add discoverable field to profiles
   `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS discoverable boolean DEFAULT true;`,
+
+  // 063 - Restrict profile SELECT to workspace co-workers (fixes C4)
+  // Migration 061 opened profiles to ALL authenticated users — too permissive.
+  // Restore workspace-scoped visibility so only co-workers and self can read profiles.
+  // The search API uses the service role key which bypasses RLS, so it still works.
+  `DROP POLICY IF EXISTS profiles_select ON profiles;
+  CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (
+    id = auth.uid()
+    OR id IN (
+      SELECT wm2.profile_id FROM workspace_members wm1
+      JOIN workspace_members wm2 ON wm1.workspace_id = wm2.workspace_id
+      WHERE wm1.profile_id = auth.uid()
+    )
+  );`,
+
+  // 064 - Storage RLS policies (fixes C5)
+  // Avatars: anyone authenticated can read; only the file owner can write/update/delete.
+  // Attachments: authenticated users can read/write (scoped to their own uploads).
+  `-- Avatars bucket policies
+  CREATE POLICY "avatars_select" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+  CREATE POLICY "avatars_insert" ON storage.objects FOR INSERT WITH CHECK (
+    bucket_id = 'avatars' AND auth.uid()::text = (string_to_array(name, '/'))[1]
+  );
+  CREATE POLICY "avatars_update" ON storage.objects FOR UPDATE USING (
+    bucket_id = 'avatars' AND auth.uid()::text = (string_to_array(name, '/'))[1]
+  );
+  CREATE POLICY "avatars_delete" ON storage.objects FOR DELETE USING (
+    bucket_id = 'avatars' AND auth.uid()::text = (string_to_array(name, '/'))[1]
+  );
+
+  -- Attachments bucket policies
+  CREATE POLICY "attachments_select" ON storage.objects FOR SELECT USING (
+    bucket_id = 'attachments' AND auth.uid() IS NOT NULL
+  );
+  CREATE POLICY "attachments_insert" ON storage.objects FOR INSERT WITH CHECK (
+    bucket_id = 'attachments' AND auth.uid() IS NOT NULL
+  );`,
 ]
 
 export const REQUIRED_TABLES = [

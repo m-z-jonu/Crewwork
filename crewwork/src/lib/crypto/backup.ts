@@ -158,7 +158,7 @@ export async function hasIdentityBackup(): Promise<boolean> {
 
 /**
  * Sync channel keys to Supabase for multi-device support.
- * Stores encrypted channel keys in a JSON column.
+ * Encrypts keys with the user's ECDH agreement key before uploading.
  */
 export async function syncChannelKeysToServer(): Promise<boolean> {
   try {
@@ -177,11 +177,40 @@ export async function syncChannelKeysToServer(): Promise<boolean> {
 
     if (Object.keys(channelKeys).length === 0) return true
 
-    // Store in Supabase (encrypted with service role for now)
-    // In production, encrypt with user's key before storing
+    // Derive an encryption key from the user's ECDH agreement key pair
+    const identityKey = await getIdentityKeyPair()
+    if (!identityKey) return false
+
+    const derivedKey = await crypto.subtle.deriveKey(
+      {
+        name: 'ECDH',
+        public: identityKey.agreementPublicKey,
+      },
+      identityKey.agreementPrivateKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt']
+    )
+
+    // Encrypt the channel keys JSON
+    const encoder = new TextEncoder()
+    const keyData = encoder.encode(JSON.stringify(channelKeys))
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      derivedKey,
+      keyData
+    )
+
+    // Store encrypted payload with IV for decryption on other devices
+    const encryptedPayload = {
+      iv: Array.from(iv),
+      data: Array.from(new Uint8Array(encrypted)),
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({ channel_keys_sync: channelKeys })
+      .update({ channel_keys_sync: encryptedPayload })
       .eq('id', (await supabase.auth.getUser()).data.user?.id)
 
     return !error
@@ -193,6 +222,7 @@ export async function syncChannelKeysToServer(): Promise<boolean> {
 /**
  * Load channel keys from Supabase.
  * Called on new device to restore channel keys.
+ * Handles both encrypted (new format) and legacy plaintext formats.
  */
 export async function loadChannelKeysFromServer(): Promise<boolean> {
   try {
@@ -207,9 +237,42 @@ export async function loadChannelKeysFromServer(): Promise<boolean> {
 
     if (!profile?.channel_keys_sync) return false
 
+    const payload = profile.channel_keys_sync as Record<string, unknown>
+
+    // Detect format: encrypted payloads have { iv, data } structure
+    let channelKeys: Record<string, string>
+    if (Array.isArray(payload.iv) && Array.isArray(payload.data)) {
+      // Encrypted format — decrypt with user's ECDH agreement key
+      const identityKey = await getIdentityKeyPair()
+      if (!identityKey) return false
+
+      const derivedKey = await crypto.subtle.deriveKey(
+        {
+          name: 'ECDH',
+          public: identityKey.agreementPublicKey,
+        },
+        identityKey.agreementPrivateKey,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['decrypt']
+      )
+
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: new Uint8Array(payload.iv as number[]) },
+        derivedKey,
+        new Uint8Array(payload.data as number[]).buffer
+      )
+
+      const decoder = new TextDecoder()
+      channelKeys = JSON.parse(decoder.decode(decrypted))
+    } else {
+      // Legacy plaintext format (Record<string, string>)
+      channelKeys = payload as unknown as Record<string, string>
+    }
+
     // Store each channel key in IndexedDB
     const { db } = await import('@/lib/local/db')
-    for (const [key, value] of Object.entries(profile.channel_keys_sync as Record<string, string>)) {
+    for (const [key, value] of Object.entries(channelKeys)) {
       await db.settings.put({ key, value })
     }
 
