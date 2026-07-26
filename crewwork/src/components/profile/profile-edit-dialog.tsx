@@ -28,6 +28,7 @@ export function ProfileEditDialog({ open, onOpenChange }: ProfileEditDialogProps
   const [statusText, setStatusText] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [discoverable, setDiscoverable] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -41,6 +42,7 @@ export function ProfileEditDialog({ open, onOpenChange }: ProfileEditDialogProps
       setStatusText(user.status_text || '')
       setAvatarUrl(user.avatar_url)
       setAvatarPreview(user.avatar_url)
+      setDiscoverable(user.discoverable !== false)
       setError('')
     }
   }, [open, user])
@@ -175,6 +177,7 @@ export function ProfileEditDialog({ open, onOpenChange }: ProfileEditDialogProps
           status_emoji: statusEmoji || null,
           status_text: statusText.trim() || null,
           avatar_url: avatarUrl,
+          discoverable,
         })
         .eq('id', user.id)
 
@@ -192,6 +195,7 @@ export function ProfileEditDialog({ open, onOpenChange }: ProfileEditDialogProps
         status_emoji: statusEmoji || null,
         status_text: statusText.trim() || null,
         avatar_url: avatarUrl,
+        discoverable,
       })
 
       onOpenChange(false)
@@ -323,6 +327,32 @@ export function ProfileEditDialog({ open, onOpenChange }: ProfileEditDialogProps
                   {emoji}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Discoverable setting */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Discoverability</Label>
+            <p className="text-xs text-muted-foreground">
+              Allow other users to find you when searching for contacts
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDiscoverable(!discoverable)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  discoverable ? 'bg-[#DC2626]' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    discoverable ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-muted-foreground">
+                {discoverable ? 'Visible to others' : 'Hidden from search'}
+              </span>
             </div>
           </div>
 

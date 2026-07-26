@@ -36,30 +36,47 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
       return
     }
 
-    const timeout = setTimeout(async () => {
+    const controller = new AbortController()
+
+    const timer = setTimeout(async () => {
       const client = getSupabaseClient()
       if (!client) return
 
       setLoading(true)
       try {
-        const { data } = await client
-          .from('profiles')
-          .select('*')
-          .neq('id', user.id)
-          .or(`display_name.ilike.%${search}%,email.ilike.%${search}%`)
-          .limit(20)
+        const { data: { session } } = await client.auth.getSession()
 
-        if (data) {
-          setResults(data as Profile[])
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(search.trim())}`, {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          signal: controller.signal,
+        })
+
+        if (!res.ok) {
+          const err = await res.json()
+          setError(err.error || 'Search failed')
+          setLoading(false)
+          return
         }
+
+        const { users } = await res.json()
+        setResults(users || [])
+        setError(null)
       } catch (err) {
-        console.error('Search failed:', err)
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error('Search failed:', err)
+          setError('Search failed. Please try again.')
+        }
       } finally {
         setLoading(false)
       }
     }, 300)
 
-    return () => clearTimeout(timeout)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [search, user])
 
   function getContactStatus(profileId: string): 'none' | 'accepted' | 'pending_sent' | 'pending_received' {

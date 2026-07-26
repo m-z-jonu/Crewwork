@@ -323,6 +323,9 @@ export const migrations: string[] = [
 
   // 061 - Allow profile search for contact discovery
   `DROP POLICY IF EXISTS profiles_select ON profiles; CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (auth.uid() IS NOT NULL);`,
+
+  // 062 - Add discoverable field to profiles
+  `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS discoverable boolean DEFAULT true;`,
 ]
 
 export const REQUIRED_TABLES = [

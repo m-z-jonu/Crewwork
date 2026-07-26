@@ -14,6 +14,7 @@ export interface Profile {
   prekey_bundle?: Record<string, unknown> | null  // Prekey bundle for X3DH
   identity_backup?: Record<string, unknown> | null  // Encrypted identity key for multi-device
   channel_keys_sync?: Record<string, string> | null  // Encrypted channel keys for sync
+  discoverable?: boolean
 }
 
 export interface Workspace {
