@@ -42,10 +42,23 @@ export function usePresence() {
           .update({ is_online: false, last_seen_at: new Date().toISOString() })
           .eq('id', user!.id)
       } catch {
-        // Fallback: sendBeacon for tab close (best-effort)
+        // Fallback: fetch with keepalive for tab close (best-effort, includes auth)
         try {
           const body = JSON.stringify({ is_online: false, last_seen_at: new Date().toISOString() })
-          navigator.sendBeacon?.(url, new Blob([body], { type: 'application/json' }))
+          const { data: { session } } = await client!.auth.getSession()
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'apikey': anonKey,
+          }
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`
+          }
+          fetch(url, {
+            method: 'PATCH',
+            headers,
+            body,
+            keepalive: true,
+          })
         } catch {
           // Best effort
         }

@@ -4,6 +4,9 @@ import { join } from 'path'
 
 // GET: Check if config exists
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ configured: true })
+  }
   const configured = !!(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )

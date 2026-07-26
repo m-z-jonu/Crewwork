@@ -107,12 +107,20 @@ export async function decryptIdentityFromBackup(
   const agreementPrivateKey = await crypto.subtle.importKey('jwk', data.agreementPrivate, { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey', 'deriveBits'])
   const agreementPublicKey = await crypto.subtle.importKey('jwk', data.agreementPublic, { name: 'ECDH', namedCurve: 'P-256' }, true, [])
 
+  // Re-import private keys with extractable: false for security
+  const secureSigningPrivate = await crypto.subtle.importKey(
+    'jwk', data.signingPrivate, { name: 'Ed25519' }, false, ['sign']
+  )
+  const secureAgreementPrivate = await crypto.subtle.importKey(
+    'jwk', data.agreementPrivate, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey', 'deriveBits']
+  )
+
   return {
     publicKey: signingPublicKey,
-    privateKey: signingPrivateKey,
+    privateKey: secureSigningPrivate,
     publicKeyBase64: data.publicKeyBase64,
     agreementPublicKey,
-    agreementPrivateKey,
+    agreementPrivateKey: secureAgreementPrivate,
     agreementPublicKeyBase64: data.agreementPublicKeyBase64,
     createdAt: data.createdAt,
   }

@@ -363,6 +363,20 @@ export const migrations: string[] = [
   CREATE POLICY "attachments_insert" ON storage.objects FOR INSERT WITH CHECK (
     bucket_id = 'attachments' AND auth.uid() IS NOT NULL
   );`,
+
+  // 066 - Fix contacts UPDATE policy to allow recipients to accept
+  `DROP POLICY IF EXISTS contacts_update ON contacts;
+  CREATE POLICY "contacts_update" ON contacts FOR UPDATE USING (
+    user_id = auth.uid()
+    OR contact_id = auth.uid()
+  );`,
+
+  // 067 - Restrict channel updates to creator or admin
+  `DROP POLICY IF EXISTS channels_update ON channels;
+  CREATE POLICY "channels_update" ON channels FOR UPDATE USING (
+    created_by = auth.uid()
+    OR workspace_id IN (SELECT get_my_admin_workspace_ids())
+  );`,
 ]
 
 export const REQUIRED_TABLES = [

@@ -15,7 +15,7 @@ const ALLOWED_MIME_TYPES = new Set([
   // Audio/Video
   'audio/mpeg', 'audio/wav', 'audio/ogg', 'video/mp4', 'video/webm',
   // Code
-  'application/json', 'application/xml', 'text/html', 'text/css', 'text/javascript',
+  'application/json', 'application/xml', 'text/css',
 ])
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB

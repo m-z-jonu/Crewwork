@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,12 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+
+    // Rate limit: 30 per minute per user
+    const rateLimitKey = `users-search:${user.id}`
+    if (!checkRateLimit(rateLimitKey, 30, 60000)) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
     }
 
     const query = request.nextUrl.searchParams.get('q') || ''
