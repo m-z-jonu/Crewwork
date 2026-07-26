@@ -31,6 +31,7 @@ interface AppState {
   sidebarTab: 'chats' | 'workspaces'
   contacts: Contact[]
   pendingContacts: Contact[]
+  suggestedContacts: Profile[]
   personalWorkspace: Workspace | null
   todos: Todo[]
   todoView: 'board' | 'list'
@@ -70,6 +71,7 @@ interface AppState {
   removeContact: (contactId: string) => void
   setPendingContacts: (contacts: Contact[]) => void
   addPendingContact: (contact: Contact) => void
+  setSuggestedContacts: (contacts: Profile[]) => void
   removePendingContact: (contactId: string) => void
   acceptPendingContact: (contactId: string) => void
   setPersonalWorkspace: (ws: Workspace | null) => void
@@ -106,6 +108,7 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarTab: 'chats',
   contacts: [],
   pendingContacts: [],
+  suggestedContacts: [],
   personalWorkspace: null,
   todos: [],
   todoView: 'board',
@@ -227,6 +230,7 @@ export const useAppStore = create<AppState>((set) => ({
       contacts: state.contacts.filter((c) => c.id !== contactId),
     })),
   setPendingContacts: (pendingContacts) => set({ pendingContacts }),
+  setSuggestedContacts: (suggestedContacts) => set({ suggestedContacts }),
   addPendingContact: (contact) =>
     set((state) => ({
       pendingContacts: [...state.pendingContacts, contact],
@@ -273,6 +277,7 @@ export const useAppStore = create<AppState>((set) => ({
       sidebarTab: 'chats',
       contacts: [],
       pendingContacts: [],
+      suggestedContacts: [],
       personalWorkspace: null,
       todos: [],
       todoView: 'board',

@@ -61,7 +61,7 @@ function ContactRequestToast() {
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const { user, workspace, setUser, setWorkspace, setWorkspaceRole, setChannels, setCurrentChannelId, sidebarOpen, setSidebarOpen, personalWorkspace, setPersonalWorkspace, setContacts, setPendingContacts } = useAppStore()
+  const { user, workspace, setUser, setWorkspace, setWorkspaceRole, setChannels, setCurrentChannelId, sidebarOpen, setSidebarOpen, personalWorkspace, setPersonalWorkspace, setContacts, setPendingContacts, setSuggestedContacts } = useAppStore()
   const { isMobile, isTablet, isDesktop } = useMobile()
   const [loading, setLoading] = useState(true)
   const [showWorkspaceSetup, setShowWorkspaceSetup] = useState(false)
@@ -153,11 +153,46 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
 
       // Load contacts
       await loadContacts(authUser.id)
+
+      // Load suggested contacts
+      await loadSuggestedContacts(authUser.id)
     } catch (err) {
       console.error('Failed to load user data:', err)
       setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadSuggestedContacts(userId: string) {
+    const client = getSupabaseClient()
+    if (!client) return
+
+    try {
+      const state = useAppStore.getState()
+      const ws = state.workspace
+      if (!ws) return
+
+      const { data: members } = await client
+        .from('workspace_members')
+        .select('profile:profiles(*)')
+        .eq('workspace_id', ws.id)
+        .neq('profile_id', userId)
+
+      if (!members) return
+
+      const contactIds = state.contacts.map(c => c.contact_profile?.id).filter(Boolean)
+      const pendingIds = state.pendingContacts.map(c => c.contact_profile?.id).filter(Boolean)
+      const excludeIds = new Set([...contactIds, ...pendingIds, userId])
+
+      const suggestions = members
+        .map(m => m.profile as unknown as Profile)
+        .filter(p => p && p.id && !excludeIds.has(p.id))
+        .slice(0, 5)
+
+      state.setSuggestedContacts(suggestions)
+    } catch (err) {
+      console.error('Failed to load suggested contacts:', err)
     }
   }
 

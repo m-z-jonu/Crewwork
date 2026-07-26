@@ -13,7 +13,7 @@ interface ContactsPanelProps {
 }
 
 export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
-  const { contacts, pendingContacts, user, setCurrentChannelId, personalWorkspace, unhideDm, removePendingContact, acceptPendingContact, addContact } = useAppStore()
+  const { contacts, pendingContacts, suggestedContacts, user, setCurrentChannelId, personalWorkspace, unhideDm, removePendingContact, acceptPendingContact, addContact } = useAppStore()
   const [search, setSearch] = useState('')
   const [addContactOpen, setAddContactOpen] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
@@ -269,6 +269,48 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
                     </div>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* People You May Know */}
+          {suggestedContacts.length > 0 && !search && (
+            <div className="mb-4">
+              <div className="px-2 py-0.5 mb-0.5">
+                <span className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: '#A8A29E' }}>
+                  People You May Know
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                {suggestedContacts.map((profile) => (
+                  <div key={profile.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white transition-colors">
+                    <div className="relative shrink-0">
+                      {profile.avatar_url ? (
+                        <img src={profile.avatar_url} alt="" className="h-9 w-9 rounded-xl object-cover" />
+                      ) : (
+                        <div className="h-9 w-9 rounded-xl flex items-center justify-center text-[14px] font-bold text-white" style={{ background: '#DC2626' }}>
+                          {profile.display_name[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-medium truncate" style={{ color: '#1C1917' }}>{profile.display_name}</p>
+                      {profile.email && (
+                        <p className="text-[12px] truncate" style={{ color: '#A8A29E' }}>{profile.email}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSearch(profile.display_name)
+                        setAddContactOpen(true)
+                      }}
+                      className="h-7 px-3 rounded-lg text-xs font-medium transition-colors"
+                      style={{ background: '#FEE2E2', color: '#DC2626' }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           )}

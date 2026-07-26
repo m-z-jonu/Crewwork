@@ -70,6 +70,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const setSidebarTab = useAppStore((s) => s.setSidebarTab)
   const contacts = useAppStore((s) => s.contacts)
   const pendingContacts = useAppStore((s) => s.pendingContacts)
+  const suggestedContacts = useAppStore((s) => s.suggestedContacts)
   const personalWorkspace = useAppStore((s) => s.personalWorkspace)
   const [channelsOpen, setChannelsOpen] = useState(true)
   const [dmsOpen, setDmsOpen] = useState(true)
@@ -490,6 +491,31 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                     >
                       View all {contacts.length} contacts
                     </button>
+                  )}
+
+                  {/* Suggested contacts */}
+                  {suggestedContacts.length > 0 && contacts.length > 0 && (
+                    <div className="mt-2 space-y-0.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider px-2 mb-1" style={{ color: '#A8A29E' }}>
+                        Suggested
+                      </p>
+                      {suggestedContacts.slice(0, 3).map((profile) => (
+                        <button
+                          key={profile.id}
+                          onClick={() => setContactsPanelOpen(true)}
+                          className="w-full flex items-center gap-2 px-3 py-[6px] rounded-lg text-[13px] transition-all hover:bg-[#FECACA]"
+                          style={{ color: '#78716C' }}
+                        >
+                          <div className="h-5 w-5 rounded-md flex items-center justify-center text-[9px] font-bold" style={{ background: '#FECACA', color: '#DC2626' }}>
+                            {profile.display_name[0]?.toUpperCase() || '?'}
+                          </div>
+                          <span className="truncate flex-1 text-left">{profile.display_name}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+                            Add
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

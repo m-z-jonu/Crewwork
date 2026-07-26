@@ -15,7 +15,7 @@ interface AddContactDialogProps {
 }
 
 export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) {
-  const { user, contacts, pendingContacts, addPendingContact } = useAppStore()
+  const { user, contacts, pendingContacts, suggestedContacts, addPendingContact } = useAppStore()
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Profile[]>([])
   const [loading, setLoading] = useState(false)
@@ -163,10 +163,50 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
           {!loading && search && results.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">No users found</p>
           )}
-          {!loading && !search && (
+          {!loading && !search && suggestedContacts.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
               Type a name or email to search
             </p>
+          )}
+
+          {/* Suggestions when search is empty */}
+          {!loading && !search && suggestedContacts.length > 0 && (
+            <div className="space-y-3 mt-2">
+              <p className="text-xs font-semibold uppercase tracking-wider px-1" style={{ color: '#A8A29E' }}>
+                People You May Know
+              </p>
+              <div className="space-y-1">
+                {suggestedContacts.slice(0, 5).map((profile) => (
+                  <div key={profile.id} className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors">
+                    <div className="relative">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                        {profile.avatar_url ? (
+                          <img src={profile.avatar_url} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                        ) : (
+                          profile.display_name[0]?.toUpperCase() || '?'
+                        )}
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{profile.display_name}</p>
+                      {profile.email && (
+                        <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSearch(profile.display_name)
+                      }}
+                      className="shrink-0"
+                    >
+                      Search
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
           {results.map((profile) => {
             const status = getContactStatus(profile.id)
