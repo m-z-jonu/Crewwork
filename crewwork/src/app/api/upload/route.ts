@@ -104,10 +104,18 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
+    // SECURITY: For avatars, ensure the path is under the user's directory
+    if (bucket === 'avatars') {
+      const expectedPrefix = `${user.id}/`
+      if (!sanitizedPath.startsWith(expectedPrefix)) {
+        return NextResponse.json({ error: 'Invalid upload path' }, { status: 403 })
+      }
+    }
+
     const { error: uploadError } = await supabase.storage
       .from(bucket)
       .upload(sanitizedPath, buffer, {
-        upsert: true,
+        upsert: false,
         contentType: file.type,
       })
 

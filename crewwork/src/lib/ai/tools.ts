@@ -1,6 +1,11 @@
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod'
 
+// SECURITY NOTE: AI tools use service role key which bypasses RLS.
+// This means the AI can read data from any workspace, not just the user's.
+// In production, implement scoped access per workspace by passing the user's
+// auth token and creating a per-request Supabase client with it.
+
 /**
  * Tool: Search messages in a channel.
  */

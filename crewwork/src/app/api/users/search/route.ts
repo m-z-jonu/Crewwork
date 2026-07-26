@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
     }
 
     const query = request.nextUrl.searchParams.get('q') || ''
-    if (query.length < 2) {
+    // SECURITY: Sanitize query to prevent PostgREST filter injection
+    const sanitizedQuery = query.replace(/[^a-zA-Z0-9@.\s_-]/g, '')
+    if (sanitizedQuery.length < 2) {
       return NextResponse.json({ users: [] })
     }
 
@@ -39,7 +41,7 @@ export async function GET(request: NextRequest) {
       .from('profiles')
       .select('id, display_name, email, avatar_url, is_online')
       .neq('id', user.id)
-      .or(`display_name.ilike.%${query}%,email.ilike.%${query}%`)
+      .or(`display_name.ilike.%${sanitizedQuery}%,email.ilike.%${sanitizedQuery}%`)
       .limit(20)
 
     if (searchError) {

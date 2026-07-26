@@ -146,7 +146,6 @@ function AuthForm() {
 
   async function autoJoinWorkspace(userId: string) {
     // Generate identity key for E2EE if not exists
-    // This runs on EVERY login, regardless of workspaceId
     try {
       const existingKey = await getIdentityKeyPair()
       if (!existingKey) {
@@ -161,6 +160,7 @@ function AuthForm() {
     if (!client) return
 
     try {
+      // Check if user is already a member
       const { data: existing } = await client
         .from('workspace_members')
         .select('profile_id')
@@ -170,12 +170,36 @@ function AuthForm() {
 
       if (existing && existing.length > 0) return
 
+      // Check if workspace exists and is accessible
+      const { data: workspace } = await client
+        .from('workspaces')
+        .select('id, workspace_type')
+        .eq('id', workspaceId)
+        .single()
+
+      if (!workspace) {
+        console.error('Workspace not found')
+        return
+      }
+
+      // SECURITY: Only auto-join if the user was invited (came from invite link)
+      // The invite token in the URL validates this
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasInviteToken = urlParams.has('token')
+
+      if (!hasInviteToken && workspace.workspace_type === 'business') {
+        console.error('Cannot join business workspace without invitation')
+        return
+      }
+
+      // Add to workspace
       await client.from('workspace_members').insert({
         workspace_id: workspaceId,
         profile_id: userId,
         role: 'member',
       })
 
+      // Add to public channels
       const { data: channels } = await client
         .from('channels')
         .select('id')
