@@ -79,7 +79,7 @@ export function ChannelSettingsDialog({ open, onOpenChange, channel }: ChannelSe
     setLoading(true)
     const { data } = await client
       .from('channel_members')
-      .select('profile_id, role, profile:profiles(*)')
+      .select('profile_id, role, profile:profiles(id, display_name, avatar_url, status_emoji, status_text, is_online, last_seen_at)')
       .eq('channel_id', channel.id)
 
     if (data) {
@@ -100,7 +100,7 @@ export function ChannelSettingsDialog({ open, onOpenChange, channel }: ChannelSe
 
     const { data } = await client
       .from('workspace_members')
-      .select('profile:profiles(*)')
+      .select('profile:profiles(id, display_name, avatar_url, status_emoji, status_text, is_online, last_seen_at)')
       .eq('workspace_id', workspace.id)
 
     if (data) {

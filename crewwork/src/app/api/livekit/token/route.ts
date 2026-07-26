@@ -88,6 +88,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Calls are disabled for this channel' }, { status: 400 })
     }
 
+    // Verify user is a member of the workspace
+    const { data: membership } = await supabaseAdmin
+      .from('workspace_members')
+      .select('profile_id')
+      .eq('workspace_id', ws.id)
+      .eq('profile_id', user.id)
+      .single()
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Not a member of this workspace' }, { status: 403 })
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('display_name')

@@ -70,7 +70,7 @@ export function WorkspaceSettingsDialog({ open, onOpenChange }: WorkspaceSetting
     setLoading(true)
     const { data } = await client
       .from('workspace_members')
-      .select('profile_id, role, profile:profiles(*)')
+      .select('profile_id, role, profile:profiles(id, display_name, avatar_url, status_emoji, status_text, is_online, last_seen_at)')
       .eq('workspace_id', workspace.id)
 
     if (data) {

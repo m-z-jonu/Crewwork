@@ -35,13 +35,12 @@ export function UserProfilePanel() {
 
     client
       .from('profiles')
-      .select('*')
+      .select('id, display_name, avatar_url, status_emoji, status_text, is_online, last_seen_at')
       .eq('id', profileUserId)
       .single()
       .then(({ data }) => {
         if (!cancelled && data) {
           setProfile(data as Profile)
-          setTheirPublicKey(data.public_key || null)
           setLoading(false)
         }
       })

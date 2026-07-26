@@ -122,7 +122,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       for (const dm of dms) {
         const { data: members } = await client!
           .from('channel_members')
-          .select('profile_id, profile:profiles(*)')
+          .select('profile_id, profile:profiles(id, display_name, avatar_url, status_emoji, status_text, is_online, last_seen_at)')
           .eq('channel_id', dm.id)
 
         if (dm.name.startsWith('gdm-')) {
@@ -190,7 +190,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
           const { data: members } = await client!
             .from('channel_members')
-            .select('profile_id, profile:profiles(*)')
+            .select('profile_id, profile:profiles(id, display_name, avatar_url, status_emoji, status_text, is_online, last_seen_at)')
             .eq('channel_id', ch.id)
 
           if (ch.name.startsWith('gdm-')) {
@@ -253,7 +253,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           if (ch.name.startsWith('dm-') || ch.name.startsWith('gdm-')) {
             const { data: members } = await client!
               .from('channel_members')
-              .select('profile_id, profile:profiles(*)')
+              .select('profile_id, profile:profiles(id, display_name, avatar_url, status_emoji, status_text, is_online, last_seen_at)')
               .eq('channel_id', ch.id)
 
             if (ch.name.startsWith('gdm-')) {
