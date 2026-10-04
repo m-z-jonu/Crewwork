@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve OpenHive
+about: Report a bug to help us improve CrewWork
 title: "[Bug] "
 labels: bug
 assignees: ''

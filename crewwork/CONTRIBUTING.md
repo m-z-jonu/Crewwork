@@ -1,6 +1,6 @@
-# Contributing to OpenHive
+# Contributing to CrewWork
 
-First off, thank you for considering contributing to OpenHive! Every contribution helps make this project better for everyone.
+First off, thank you for considering contributing to CrewWork! Every contribution helps make this project better for everyone.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ First off, thank you for considering contributing to OpenHive! Every contributio
 
 ## Code of Conduct
 
-By participating in this project, you agree to be respectful and constructive. We want OpenHive to be a welcoming community for everyone.
+By participating in this project, you agree to be respectful and constructive. We want CrewWork to be a welcoming community for everyone.
 
 - Be kind and courteous
 - Respect differing viewpoints
@@ -26,8 +26,8 @@ By participating in this project, you agree to be respectful and constructive. W
 1. **Fork** the repository on GitHub
 2. **Clone** your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/openhive.git
-   cd openhive
+   git clone https://github.com/YOUR_USERNAME/Crewwork.git
+   cd Crewwork
    ```
 3. **Install dependencies**:
    ```bash
@@ -82,7 +82,7 @@ Write clear, concise commit messages:
 
 ### What to Work On
 
-- Check [open issues](https://github.com/arseneHuot/openhive/issues) for bugs and feature requests
+- Check [open issues](https://github.com/m-z-jonu/Crewwork/issues) for bugs and feature requests
 - Look for issues labeled `good first issue` for beginner-friendly tasks
 - Look for issues labeled `help wanted` for tasks where we need assistance
 - Have an idea? Open an issue first to discuss it
@@ -165,4 +165,4 @@ src/
 
 ---
 
-Thank you for contributing to OpenHive!
+Thank you for contributing to CrewWork!

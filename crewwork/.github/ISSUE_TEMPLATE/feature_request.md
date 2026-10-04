@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature for OpenHive
+about: Suggest a new feature for CrewWork
 title: "[Feature] "
 labels: enhancement
 assignees: ''

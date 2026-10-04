@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next'
+import { SITE_URL } from '@/lib/seo/faq'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: 'https://crewwork-cp8n.onrender.com',
+      url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1,

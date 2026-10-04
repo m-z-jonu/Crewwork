@@ -6,13 +6,13 @@
   <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License" />
 </p>
 
-# OpenHive
+# CrewWork
 
 **Open-source team messaging platform** — a real-time team messaging app anyone can self-host in minutes.
 
-OpenHive is a community-driven project built with Next.js and Supabase. The goal: build a full-featured, beautiful team communication platform that's **100% open-source** and easy to deploy. No vendor lock-in, no hidden costs — bring your own Supabase instance and you're good to go.
+CrewWork is a community-driven project built with Next.js and Supabase. The goal: build a full-featured, beautiful team communication platform that's **100% open-source** and easy to deploy. No vendor lock-in, no hidden costs — bring your own Supabase instance and you're good to go.
 
-> 🚀 **[Try the live demo →](https://www.openhivedemo.com/auth?workspace=022469cb-2e23-4fe4-a462-5da6d55905cd)**
+> 🚀 **[Try the live demo →](https://crewwork-cp8n.onrender.com/auth)**
 
 > **We're looking for contributors!** Whether you're a frontend developer, designer, or backend engineer — there's room for everyone. See [Contributing](#contributing) below.
 
@@ -162,8 +162,8 @@ OpenHive is a community-driven project built with Next.js and Supabase. The goal
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/arseneHuot/openhive.git
-cd openhive
+git clone https://github.com/m-z-jonu/Crewwork.git
+cd Crewwork
 npm install
 ```
 
@@ -217,9 +217,9 @@ Video/audio calls are powered by [LiveKit](https://livekit.io), an open-source W
 1. Follow the [LiveKit self-hosting guide](https://docs.livekit.io/home/self-hosting/local/)
 2. Use your self-hosted server URL and generated API credentials
 
-### Enable calls in OpenHive
+### Enable calls in CrewWork
 
-1. Open your workspace in OpenHive
+1. Open your workspace in CrewWork
 2. Click the workspace name (top-left) > **Workspace Settings**
 3. Scroll to **Video Calls (LiveKit)**
 4. Enter your LiveKit **Server URL**, **API Key**, and **API Secret**
@@ -279,7 +279,7 @@ src/
 
 ## Database Schema
 
-OpenHive auto-provisions **23+ tables** with full RLS (Row Level Security):
+CrewWork auto-provisions **23+ tables** with full RLS (Row Level Security):
 
 **Core:**
 `profiles` · `workspaces` · `workspace_members` · `channels` · `channel_members` · `messages` · `reactions` · `file_attachments` · `pins` · `read_receipts`
@@ -301,7 +301,7 @@ All migrations are in `src/lib/supabase/migrations.ts` — the setup wizard runs
 
 ### Vercel (recommended)
 
-You can deploy OpenHive to Vercel in two ways:
+You can deploy CrewWork to Vercel in two ways:
 
 #### Option A: Provision first, then deploy
 
@@ -349,7 +349,7 @@ Supabase's built-in email service has strict rate limits (3–4 emails/hour on t
 
 ### Other platforms
 
-OpenHive runs anywhere Node.js runs — Railway, Fly.io, Docker, AWS, etc.
+CrewWork runs anywhere Node.js runs — Railway, Fly.io, Docker, AWS, etc.
 
 1. Deploy the app
 2. Open the deployed URL → complete the setup wizard to provision the database
@@ -362,14 +362,14 @@ Or provision locally first, then set the env vars and run `npm run build && npm 
 
 ## Contributing
 
-**OpenHive is a community project — we want as many contributors as possible!**
+**CrewWork is a community project — we want as many contributors as possible!**
 
 Whether you're fixing a typo, adding a feature, or improving the docs — every contribution matters. Here's how to get involved:
 
 ### Quick start
 
 1. **Fork** the repository
-2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/openhive.git`
+2. **Clone** your fork: `git clone https://github.com/YOUR_USERNAME/Crewwork.git`
 3. **Create a branch**: `git checkout -b feature/my-awesome-feature`
 4. **Make your changes** and test locally
 5. **Commit**: `git commit -m "Add my awesome feature"`
@@ -378,7 +378,7 @@ Whether you're fixing a typo, adding a feature, or improving the docs — every 
 
 ### What can you work on?
 
-- **New features** — Check the [Issues](https://github.com/arseneHuot/openhive/issues) tab for feature requests
+- **New features** — Check the [Issues](https://github.com/m-z-jonu/Crewwork/issues) tab for feature requests
 - **Bug fixes** — Found a bug? Fix it and submit a PR
 - **UI/UX improvements** — Better animations, responsive design, accessibility
 - **Documentation** — Improve docs, add examples, translate
@@ -418,15 +418,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## Community
 
-- **GitHub Issues** — [Report bugs & request features](https://github.com/arseneHuot/openhive/issues)
-- **GitHub Discussions** — [Ask questions & share ideas](https://github.com/arseneHuot/openhive/discussions)
-- **Pull Requests** — [Contribute code](https://github.com/arseneHuot/openhive/pulls)
+- **GitHub Issues** — [Report bugs & request features](https://github.com/m-z-jonu/Crewwork/issues)
+- **GitHub Discussions** — [Ask questions & share ideas](https://github.com/m-z-jonu/Crewwork/discussions)
+- **Pull Requests** — [Contribute code](https://github.com/m-z-jonu/Crewwork/pulls)
 
 ---
 
 ## License
 
-OpenHive is open-source software licensed under the [MIT License](LICENSE).
+CrewWork is open-source software licensed under the [MIT License](LICENSE).
 
 ---
 
@@ -434,5 +434,3 @@ OpenHive is open-source software licensed under the [MIT License](LICENSE).
   Built with Next.js, Supabase & LiveKit<br/>
   <strong>Star the repo if you like the project!</strong>
 </p>
-#   C r e w w o r k  
- 
