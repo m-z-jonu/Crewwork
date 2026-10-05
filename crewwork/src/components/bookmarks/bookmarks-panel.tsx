@@ -280,10 +280,18 @@ export function BookmarksPanel({ open, onClose }: BookmarksPanelProps) {
               ) : (
                 <div className="space-y-1">
                   {posts.map((post) => (
-                    <button
+                    <div
                       key={post.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleSelectPost(post)}
-                      className="w-full text-left p-3 rounded-xl transition-all hover:shadow-sm group"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          handleSelectPost(post)
+                        }
+                      }}
+                      className="w-full text-left p-3 rounded-xl transition-all hover:shadow-sm group cursor-pointer"
                       style={{ background: '#ffffff', border: '1px solid #E7E5E4' }}
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
@@ -321,7 +329,7 @@ export function BookmarksPanel({ open, onClose }: BookmarksPanelProps) {
                           {formatDistanceToNow(new Date(post.savedAt), { addSuffix: true })}
                         </span>
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
