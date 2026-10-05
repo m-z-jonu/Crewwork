@@ -17,6 +17,7 @@ import type { Channel, Message } from '@/types/database'
 import { Hash, Lock, Users, Loader2, LogIn, Menu, Phone } from 'lucide-react'
 import { useMobile } from '@/hooks/use-mobile'
 import { CallSetupDialog } from '@/components/calls/call-setup-dialog'
+import { buildCallRoomName } from '@/lib/calls/room-name'
 
 const PAGE_SIZE = 50
 const AI_CHANNEL_NAME = '#ai-assistant'
@@ -392,7 +393,7 @@ export function ChannelView({ channel, isPreview = false }: ChannelViewProps) {
       setCallSetupOpen(true)
       return
     }
-    const roomName = `${workspace?.id || 'default'}-${channel.id}-${Date.now()}`
+    const roomName = buildCallRoomName(workspace?.id || 'default', channel.id)
     useAppStore.getState().setActiveCall({
       roomName,
       serverUrl: '',

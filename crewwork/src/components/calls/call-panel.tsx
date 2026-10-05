@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { X, Phone, LogOut, Loader2, Mic, MicOff, Video, VideoOff, ScreenShare, ScreenShareOff, Hand, MessageSquare, Users, Settings, Maximize, Minimize } from 'lucide-react'
 import { useAppStore } from '@/lib/store/app-store'
+import { jitsiRoomName } from '@/lib/calls/room-name'
 
 const JITSI_DOMAIN = 'meet.jit.si'
 
@@ -35,6 +36,20 @@ export function CallPanel() {
   const [participantCount, setParticipantCount] = useState(1)
   const [showChat, setShowChat] = useState(false)
 
+  // Reset per-call state whenever the active call changes (including null -> new call).
+  // Without this, reopening a call after "Leave Call" skips the lobby and renders a
+  // blank Jitsi container (handleJoin never runs).
+  const callKey = activeCall?.roomName ?? null
+  const [prevCallKey, setPrevCallKey] = useState<string | null>(null)
+  if (prevCallKey !== callKey) {
+    setPrevCallKey(callKey)
+    setInLobby(true)
+    setLoading(true)
+    setMuted(false)
+    setVideoOff(false)
+    setParticipantCount(1)
+  }
+
   const handleLeave = useCallback(() => {
     if (apiRef.current) {
       apiRef.current.dispose()
@@ -50,7 +65,12 @@ export function CallPanel() {
     try {
       await loadJitsiScript()
 
-      const roomName = `CrewWork-${activeCall?.roomName.split('-').slice(0, 2).join('-') || 'room'}`
+      if (apiRef.current) {
+        apiRef.current.dispose()
+        apiRef.current = null
+      }
+
+      const roomName = jitsiRoomName(activeCall?.roomName || 'room')
 
       const api = new (window as any).JitsiMeetExternalAPI(JITSI_DOMAIN, {
         roomName,
@@ -62,7 +82,6 @@ export function CallPanel() {
           startWithVideoMuted: false,
           prejoinPageEnabled: false,
           enableLobby: false,
-          startWithModertor: true,
           enableInsecureRoomNameWarning: false,
           disableDeepLinking: true,
           defaultLanguage: 'en',
@@ -95,8 +114,6 @@ export function CallPanel() {
       // Event listeners
       api.addEventListener('ready', () => {
         setLoading(false)
-        // Ensure we're a moderator
-        api.executeCommand('toggleParticipantMenu', { hidden: false })
       })
 
       api.addEventListener('readyToClose', () => {
@@ -138,7 +155,7 @@ export function CallPanel() {
 
   if (!activeCall) return null
 
-  const roomName = `CrewWork-${activeCall.roomName.split('-').slice(0, 2).join('-')}`
+  const roomName = jitsiRoomName(activeCall.roomName)
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -154,7 +171,7 @@ export function CallPanel() {
                 {inLobby ? 'Join Call' : 'Call in Progress'}
               </h3>
               {!inLobby && (
-                <p className="text-xs" style={{ color: '#A8A29E' }}>Room: {roomName}</p>
+                <p className="text-xs truncate max-w-[280px]" style={{ color: '#A8A29E' }}>Room: {roomName}</p>
               )}
             </div>
           </div>
