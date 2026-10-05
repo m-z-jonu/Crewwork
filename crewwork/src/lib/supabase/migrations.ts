@@ -290,6 +290,7 @@ export const migrations: string[] = [
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE channel_members; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE profiles; EXCEPTION WHEN duplicate_object THEN NULL; END;
     BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE todos; EXCEPTION WHEN duplicate_object THEN NULL; END;
+    BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE contacts; EXCEPTION WHEN duplicate_object THEN NULL; END;
   END
   $$;`,
 
@@ -376,6 +377,13 @@ export const migrations: string[] = [
   CREATE POLICY "channels_update" ON channels FOR UPDATE USING (
     created_by = auth.uid()
     OR workspace_id IN (SELECT get_my_admin_workspace_ids())
+  );`,
+
+  // 068 - Fix contacts DELETE policy (recipients must be able to reject requests)
+  `DROP POLICY IF EXISTS contacts_delete ON contacts;
+  CREATE POLICY "contacts_delete" ON contacts FOR DELETE USING (
+    user_id = auth.uid()
+    OR contact_id = auth.uid()
   );`,
 ]
 

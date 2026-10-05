@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Search, Circle, UserMinus, MessageCircle, Check, XIcon, UserPlus } from 'lucide-react'
+import { X, Search, Circle, UserMinus, MessageCircle, Check, XIcon } from 'lucide-react'
 import { useAppStore } from '@/lib/store/app-store'
 import { getSupabaseClient } from '@/lib/supabase/client'
+import { contactErrorMessage, acceptContactRequest } from '@/lib/contacts'
 import { AddContactDialog } from './add-contact-dialog'
 import type { Profile, Contact } from '@/types/database'
 
@@ -18,6 +19,7 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
   const [addContactOpen, setAddContactOpen] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Pending requests I RECEIVED (others wanting to add me)
   const myPendingRequests = pendingContacts.filter(
@@ -34,15 +36,37 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
     )
   })
 
-  async function removeContact(contactId: string) {
+  async function removeContact(contact: Contact) {
     const client = getSupabaseClient()
-    if (!client) return
-    setRemoving(contactId)
+    const other = contact.contact_profile
+    if (!client || !user || !other) return
+    setRemoving(contact.id)
+    setActionError(null)
     try {
-      await client.from('contacts').delete().eq('id', contactId)
-      useAppStore.getState().removeContact(contactId)
+      // Remove both directions so neither side keeps a stale one-way contact
+      const first = await client
+        .from('contacts')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('contact_id', other.id)
+        .select('id')
+      if (first.error) throw first.error
+      const second = await client
+        .from('contacts')
+        .delete()
+        .eq('user_id', other.id)
+        .eq('contact_id', user.id)
+        .select('id')
+      if (second.error) throw second.error
+
+      const state = useAppStore.getState()
+      state.setContacts(state.contacts.filter((c) => c.contact_profile?.id !== other.id))
+      state.setPendingContacts(
+        state.pendingContacts.filter((c) => c.contact_profile?.id !== other.id)
+      )
     } catch (err) {
       console.error('Failed to remove contact:', err)
+      setActionError(contactErrorMessage(err))
     } finally {
       setRemoving(null)
     }
@@ -53,32 +77,18 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
     if (!client || !user) return
 
     setProcessingId(request.id)
+    setActionError(null)
     try {
-      // 1. Update A→B row to 'accepted'
-      await client
-        .from('contacts')
-        .update({ status: 'accepted' })
-        .eq('id', request.id)
-
-      // 2. Insert reverse B→A row with 'accepted'
-      const { data: reverseContact } = await client
-        .from('contacts')
-        .insert({
-          user_id: user.id,
-          contact_id: request.user_id,
-          status: 'accepted',
-        })
-        .select('*, contact_profile:profiles!contact_id(*)')
-        .single()
-
-      // 3. Remove from pending, add to accepted contacts
-      acceptPendingContact(request.id)
-
-      if (reverseContact) {
-        addContact(reverseContact as Contact)
+      const { reverseContact, error } = await acceptContactRequest(client, user, request)
+      if (error) {
+        setActionError(error)
+        return
       }
+      acceptPendingContact(request.id)
+      if (reverseContact) addContact(reverseContact)
     } catch (err) {
       console.error('Failed to accept request:', err)
+      setActionError(contactErrorMessage(err))
     } finally {
       setProcessingId(null)
     }
@@ -89,11 +99,21 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
     if (!client) return
 
     setProcessingId(request.id)
+    setActionError(null)
     try {
-      await client.from('contacts').delete().eq('id', request.id)
+      const { data, error } = await client
+        .from('contacts')
+        .delete()
+        .eq('id', request.id)
+        .select('id')
+      if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error('Could not reject this request — it may no longer be pending.')
+      }
       removePendingContact(request.id)
     } catch (err) {
       console.error('Failed to reject request:', err)
+      setActionError(contactErrorMessage(err))
     } finally {
       setProcessingId(null)
     }
@@ -199,6 +219,12 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
             Add
           </button>
         </div>
+
+        {actionError && (
+          <div className="mx-4 mb-2 px-3 py-2 rounded-lg text-[13px]" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+            {actionError}
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-2 pb-4">
           {/* Pending Requests Section */}
@@ -382,7 +408,7 @@ export function ContactsPanel({ open, onClose }: ContactsPanelProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        removeContact(contact.id)
+                        removeContact(contact)
                       }}
                       disabled={removing === contact.id}
                       className="h-7 w-7 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#FEE2E2] shrink-0"

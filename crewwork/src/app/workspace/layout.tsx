@@ -293,15 +293,28 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
         setContacts(data as Contact[])
       }
 
-      // Load pending requests I RECEIVED (others wanting to add me)
-      const { data: pendingData, error: pendingError } = await client
+      // Load pending requests: both RECEIVED (others wanting to add me)
+      // and SENT (requests I sent — status must survive a page reload)
+      const { data: receivedData, error: receivedError } = await client
         .from('contacts')
         .select('*, contact_profile:profiles!contact_id(*)')
         .eq('contact_id', userId)
         .eq('status', 'pending')
 
-      if (!pendingError && pendingData) {
-        setPendingContacts(pendingData as Contact[])
+      const { data: sentData, error: sentError } = await client
+        .from('contacts')
+        .select('*, contact_profile:profiles!contact_id(*)')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+
+      if (!receivedError && receivedData) {
+        const merged = [...receivedData]
+        if (!sentError && sentData) {
+          for (const s of sentData) {
+            if (!merged.some((r) => r.id === s.id)) merged.push(s)
+          }
+        }
+        setPendingContacts(merged as Contact[])
       }
 
       // Subscribe to new contact requests (where I am the recipient)
@@ -356,11 +369,11 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
           'postgres_changes',
           { event: 'DELETE', schema: 'public', table: 'contacts' },
           (payload) => {
-            const deleted = payload.old as { contact_id: string; user_id: string }
-            // If someone I sent a request to rejected it (deleted the row)
-            if (deleted.user_id === userId) {
-              const state = useAppStore.getState()
-              state.removePendingContact(deleted.user_id)
+            // Row deleted (rejected by recipient, or cancelled by sender) —
+            // payload.old only guarantees the primary key (default replica identity)
+            const deleted = payload.old as { id?: string }
+            if (deleted.id) {
+              useAppStore.getState().removePendingContact(deleted.id)
             }
           }
         )

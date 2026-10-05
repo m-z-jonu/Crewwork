@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
-import { Circle, Search, UserPlus, Check, Clock } from 'lucide-react'
+import { Circle, Search, UserPlus, Check, Clock, UserCheck } from 'lucide-react'
+import { contactErrorMessage, sendContactRequest, acceptContactRequest } from '@/lib/contacts'
 import type { Profile } from '@/types/database'
 
 interface AddContactDialogProps {
@@ -15,18 +16,20 @@ interface AddContactDialogProps {
 }
 
 export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) {
-  const { user, contacts, pendingContacts, suggestedContacts, addPendingContact } = useAppStore()
+  const { user, contacts, pendingContacts, suggestedContacts, addPendingContact, acceptPendingContact, addContact } = useAppStore()
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Profile[]>([])
   const [loading, setLoading] = useState(false)
   const [addingId, setAddingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) {
       setSearch('')
       setResults([])
       setError(null)
+      setSuccess(null)
     }
   }, [open])
 
@@ -107,29 +110,111 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
 
     setAddingId(profile.id)
     setError(null)
+    setSuccess(null)
     try {
-      // Only insert A→B with status 'pending'
-      const { data, error } = await client
-        .from('contacts')
-        .insert({
-          user_id: user.id,
-          contact_id: profile.id,
-          status: 'pending',
-        })
-        .select()
-        .single()
+      const { row, alreadyExisted, error: sendError } = await sendContactRequest(client, user, profile)
 
-      if (error) throw error
+      if (sendError) {
+        setError(sendError)
+        return
+      }
 
-      if (data) {
-        addPendingContact({ ...data, contact_profile: profile })
+      if (row) {
+        // Sync store — works for both a fresh request and one that already
+        // existed in the database (state was lost on reload)
+        addPendingContact({ ...row, contact_profile: profile })
+        setSuccess(
+          alreadyExisted
+            ? `Request to ${profile.display_name} is already pending`
+            : `Request sent to ${profile.display_name}`
+        )
       }
     } catch (err) {
       console.error('Failed to send request:', err)
-      setError(err instanceof Error ? err.message : 'Failed to send request')
+      setError(contactErrorMessage(err))
     } finally {
       setAddingId(null)
     }
+  }
+
+  async function acceptRequest(profile: Profile) {
+    const client = getSupabaseClient()
+    if (!client || !user) return
+
+    const request = pendingContacts.find(
+      (c) => c.user_id === profile.id && c.contact_id === user.id && c.status === 'pending'
+    )
+    if (!request) {
+      setError('This request is no longer available.')
+      return
+    }
+
+    setAddingId(profile.id)
+    setError(null)
+    setSuccess(null)
+    try {
+      const { reverseContact, error: acceptError } = await acceptContactRequest(client, user, request)
+      if (acceptError) {
+        setError(acceptError)
+        return
+      }
+      acceptPendingContact(request.id)
+      if (reverseContact) addContact(reverseContact)
+      setSuccess(`You and ${profile.display_name} are now contacts`)
+    } catch (err) {
+      console.error('Failed to accept request:', err)
+      setError(contactErrorMessage(err))
+    } finally {
+      setAddingId(null)
+    }
+  }
+
+  function contactAction(profile: Profile) {
+    const status = getContactStatus(profile.id)
+    const busy = addingId === profile.id
+
+    if (status === 'accepted') {
+      return (
+        <div className="flex items-center gap-1 text-xs shrink-0" style={{ color: '#16A34A' }}>
+          <Check className="h-3.5 w-3.5" />
+          <span>Contact</span>
+        </div>
+      )
+    }
+    if (status === 'pending_sent') {
+      return (
+        <div className="flex items-center gap-1 text-xs shrink-0" style={{ color: '#A8A29E' }}>
+          <Clock className="h-3.5 w-3.5" />
+          <span>Sent</span>
+        </div>
+      )
+    }
+    if (status === 'pending_received') {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => acceptRequest(profile)}
+          disabled={busy}
+          className="shrink-0"
+        >
+          <UserCheck className="h-3.5 w-3.5 mr-1" />
+          Accept
+        </Button>
+      )
+    }
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => sendRequest(profile)}
+        disabled={busy}
+        className="shrink-0"
+      >
+        <UserPlus className="h-3.5 w-3.5 mr-1" />
+        Add
+      </Button>
+    )
   }
 
   return (
@@ -142,6 +227,11 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
         {error && (
           <div className="px-3 py-2 rounded-lg text-sm" style={{ background: '#FEE2E2', color: '#DC2626' }}>
             {error}
+          </div>
+        )}
+        {success && (
+          <div className="px-3 py-2 rounded-lg text-sm" style={{ background: '#DCFCE7', color: '#16A34A' }}>
+            {success}
           </div>
         )}
 
@@ -193,23 +283,13 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
                         <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
                       )}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSearch(profile.display_name)
-                      }}
-                      className="shrink-0"
-                    >
-                      Search
-                    </Button>
+                    {contactAction(profile)}
                   </div>
                 ))}
               </div>
             </div>
           )}
           {results.map((profile) => {
-            const status = getContactStatus(profile.id)
             return (
               <div
                 key={profile.id}
@@ -239,36 +319,7 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
                     <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
                   )}
                 </div>
-                {status === 'accepted' && (
-                  <div className="flex items-center gap-1 text-xs shrink-0" style={{ color: '#16A34A' }}>
-                    <Check className="h-3.5 w-3.5" />
-                    <span>Contact</span>
-                  </div>
-                )}
-                {status === 'pending_sent' && (
-                  <div className="flex items-center gap-1 text-xs shrink-0" style={{ color: '#A8A29E' }}>
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>Sent</span>
-                  </div>
-                )}
-                {status === 'pending_received' && (
-                  <div className="flex items-center gap-1 text-xs shrink-0" style={{ color: '#DC2626' }}>
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>Pending</span>
-                  </div>
-                )}
-                {status === 'none' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => sendRequest(profile)}
-                    disabled={addingId === profile.id}
-                    className="shrink-0"
-                  >
-                    <UserPlus className="h-3.5 w-3.5 mr-1" />
-                    Add
-                  </Button>
-                )}
+                {contactAction(profile)}
               </div>
             )
           })}
